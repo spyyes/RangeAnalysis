@@ -131,12 +131,13 @@ class SSA2CFG:
             #else语句
             #goto 语句
             #函数声明
+            #PHI语句
             
             #声明变量
             #简单赋值语句 + - * /
             #变量赋值语句 + - * /          
             
-            #PHI语句
+            #
             #
         return self.cfg    
     def check(self):
