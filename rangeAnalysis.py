@@ -14,10 +14,11 @@ class ExtractConstraints:
         self.Vars = {}
         self.Constraints = []
         self.VarClasses = {}
-        self.int_down = "-undefined"
-        self.int_up = "undefined"
-        self.float_down = "-undefined"
-        self.float_up = "undefined"
+        self.int_down = "minint"
+        self.int_up = "maxint"
+        self.float_down = "minfloat"
+        self.float_up = "maxfloat"
+        self.undefined = "undefined"
     
     #专为 else设计的条件翻转
     def trans_OP(self, op):
@@ -52,64 +53,129 @@ class ExtractConstraints:
                 type2 = "float"
             else:
                 type2 = "int"
+        op1_future = []
+        op2_future = []
         returnList = []
-        if(opr == "<"):
-            if type1 == 'int':
-                returnList.append(Constraint(op1, None, None, "Set", self.int_down, 0, op2 + '-1' , 0 ))
-            else:
-                returnList.append(Constraint(op1, None, None, "Set", self.float_down, 1, op2, 1 ))
-            
-            if type2 == 'int':
-                returnList.append(Constraint(op2, None, None, "Set", op1 + "+1", 0, self.int_up, 0 ))
-            else:
-                returnList.append(Constraint(op2, None, None, "Set", op1, 1, self.float_up, 1 ))
-        if(opr == '>'):
-            if type1 == 'int':
-                returnList.append(Constraint(op1, None, None, "Set", op2 + "+1", 0, self.int_up, 0 ))
-            else:
-                returnList.append(Constraint(op1, None, None, "Set", op2, 1, self.float_up, 1))
-            
-            if type2 == 'int':
-                returnList.append(Constraint(op2, None, None, "Set", self.int_down, 0, op1 + "-1", 0 ))
-            else:
-                returnList.append(Constraint(op2, None, None, "Set", self.float_down, 1, op1, 1 ))
-        if(opr == '<='):
-            if type1 == 'int':
-                returnList.append(Constraint(op1, None, None, "Set", self.int_down, 0, op2 , 0 ))
-            else:
-                returnList.append(Constraint(op1, None, None, "Set", self.float_down, 1, op2, 0 ))
-            
-            if type2 == 'int':
-                returnList.append(Constraint(op2, None, None, "Set", op1, 0, self.int_up, 0 ))
-            else:
-                returnList.append(Constraint(op2, None, None, "Set", op1, 0, self.float_up, 1 ))
-        if(opr == '>='):
-            if type1 == 'int':
-                returnList.append(Constraint(op1, None, None, "Set", op2, 0, self.int_up, 0 ))
-            else:
-                returnList.append(Constraint(op1, None, None, "Set", op2, 0, self.float_up, 1))
-            
-            if type2 == 'int':
-                returnList.append(Constraint(op2, None, None, "Set", self.int_down, 0, op1, 0 ))
-            else:
-                returnList.append(Constraint(op2, None, None, "Set", self.float_down, 1, op1, 0 ))   
-        if(opr == '=='):
-            returnList.append(Constraint(op1, None, None, "Set", op2, 0, op2, 0))
-            returnList.append(Constraint(op2, None, None, "Set", op1, 0, op1, 0))
-        if(opr == '!='):
-            if type1 == 'int':
-                returnList.append(Constraint(op1, None, None, "Set", op2 + "+1", 0, self.int_up, 0 ))
-                returnList.append(Constraint(op1, None, None, "Set", self.int_down, 0, op2 + "-1", 0))
-            else:
-                returnList.append(Constraint(op1, None, None, "Set", op2, 1, self.float_up, 1 ))
-                returnList.append(Constraint(op1, None, None, "Set", self.float_down, 1, op2, 1))
-            
-            if type2 == 'int':
-                returnList.append(Constraint(op2, None, None, "Set", op1 + "+1", 0, self.int_up, 0 ))
-                returnList.append(Constraint(op2, None, None, "Set", self.int_down, 0, op1 + "-1", 0))
-            else:
-                returnList.append(Constraint(op2, None, None, "Set", op1, 1, self.float_up, 1 ))
-                returnList.append(Constraint(op2, None, None, "Set", self.float_down, 1, op1, 1))
+        if op1_name in self.Vars and op2_name in self.Vars and op1_name!= op2_name:
+            op1_future = [op2]
+            op2_future = [op1]
+            if(opr == "<"):
+                if type1 == 'int':
+                    returnList.append(Constraint(op1, None, None, "Set", self.int_down, 0, op2 + '-1' , 0, op1_future))
+                else:
+                    returnList.append(Constraint(op1, None, None, "Set", self.float_down, 1, op2, 1, op1_future ))
+                
+                if type2 == 'int':
+                    returnList.append(Constraint(op2, None, None, "Set", op1 + "+1", 0, self.int_up, 0, op2_future ))
+                else:
+                    returnList.append(Constraint(op2, None, None, "Set", op1, 1, self.float_up, 1, op2_future))
+            if(opr == '>'):
+                if type1 == 'int':
+                    returnList.append(Constraint(op1, None, None, "Set", op2 + "+1", 0, self.int_up, 0, op1_future ))
+                else:
+                    returnList.append(Constraint(op1, None, None, "Set", op2, 1, self.float_up, 1, op1_future))
+                
+                if type2 == 'int':
+                    returnList.append(Constraint(op2, None, None, "Set", self.int_down, 0, op1 + "-1", 0, op2_future ))
+                else:
+                    returnList.append(Constraint(op2, None, None, "Set", self.float_down, 1, op1, 1, op2_future ))
+            if(opr == '<='):
+                if type1 == 'int':
+                    returnList.append(Constraint(op1, None, None, "Set", self.int_down, 0, op2 , 0, op1_future ))
+                else:
+                    returnList.append(Constraint(op1, None, None, "Set", self.float_down, 1, op2, 0, op1_future ))
+                
+                if type2 == 'int':
+                    returnList.append(Constraint(op2, None, None, "Set", op1, 0, self.int_up, 0, op2_future ))
+                else:
+                    returnList.append(Constraint(op2, None, None, "Set", op1, 0, self.float_up, 1, op2_future ))
+            if(opr == '>='):
+                if type1 == 'int':
+                    returnList.append(Constraint(op1, None, None, "Set", op2, 0, self.int_up, 0, op1_future ))
+                else:
+                    returnList.append(Constraint(op1, None, None, "Set", op2, 0, self.float_up, 1, op1_future))
+                
+                if type2 == 'int':
+                    returnList.append(Constraint(op2, None, None, "Set", self.int_down, 0, op1, 0, op2_future ))
+                else:
+                    returnList.append(Constraint(op2, None, None, "Set", self.float_down, 1, op1, 0, op2_future ))   
+            if(opr == '=='):
+                returnList.append(Constraint(op1, None, None, "Set", op2, 0, op2, 0, op1_future))
+                returnList.append(Constraint(op2, None, None, "Set", op1, 0, op1, 0, op2_future))
+            if(opr == '!='):
+                if type1 == 'int':
+                    returnList.append(Constraint(op1, None, None, "Set", op2 + "+1", 0, self.int_up, 0, op1_future ))
+                    returnList.append(Constraint(op1, None, None, "Set", self.int_down, 0, op2 + "-1", 0, op1_future))
+                else:
+                    returnList.append(Constraint(op1, None, None, "Set", op2, 1, self.float_up, 1, op1_future ))
+                    returnList.append(Constraint(op1, None, None, "Set", self.float_down, 1, op2, 1, op1_future))
+                
+                if type2 == 'int':
+                    returnList.append(Constraint(op2, None, None, "Set", op1 + "+1", 0, self.int_up, 0 , op2_future))
+                    returnList.append(Constraint(op2, None, None, "Set", self.int_down, 0, op1 + "-1", 0, op2_future))
+                else:
+                    returnList.append(Constraint(op2, None, None, "Set", op1, 1, self.float_up, 1, op2_future ))
+                    returnList.append(Constraint(op2, None, None, "Set", self.float_down, 1, op1, 1, op2_future))
+        elif op1_name in self.Vars and not op2_name in self.Vars:
+            if(opr == "<"):
+                if type1 == 'int':
+                    returnList.append(Constraint(op1, None, None, "Set", self.int_down, 0, op2 + '-1' , 0, op1_future))
+                else:
+                    returnList.append(Constraint(op1, None, None, "Set", self.float_down, 1, op2, 1, op1_future ))
+            if(opr == '>'):
+                if type1 == 'int':
+                    returnList.append(Constraint(op1, None, None, "Set", op2 + "+1", 0, self.int_up, 0, op1_future ))
+                else:
+                    returnList.append(Constraint(op1, None, None, "Set", op2, 1, self.float_up, 1, op1_future))
+            if(opr == '<='):
+                if type1 == 'int':
+                    returnList.append(Constraint(op1, None, None, "Set", self.int_down, 0, op2 , 0, op1_future ))
+                else:
+                    returnList.append(Constraint(op1, None, None, "Set", self.float_down, 1, op2, 0, op1_future ))
+            if(opr == '>='):
+                if type1 == 'int':
+                    returnList.append(Constraint(op1, None, None, "Set", op2, 0, self.int_up, 0, op1_future ))
+                else:
+                    returnList.append(Constraint(op1, None, None, "Set", op2, 0, self.float_up, 1, op1_future))
+            if(opr == '=='):
+                returnList.append(Constraint(op1, None, None, "Set", op2, 0, op2, 0, op1_future))
+            if(opr == '!='):
+                if type1 == 'int':
+                    returnList.append(Constraint(op1, None, None, "Set", op2 + "+1", 0, self.int_up, 0, op1_future ))
+                    returnList.append(Constraint(op1, None, None, "Set", self.int_down, 0, op2 + "-1", 0, op1_future))
+                else:
+                    returnList.append(Constraint(op1, None, None, "Set", op2, 1, self.float_up, 1, op1_future ))
+                    returnList.append(Constraint(op1, None, None, "Set", self.float_down, 1, op2, 1, op1_future))
+        elif op2_name in self.Vars and not op1_name in self.Vars:
+            if(opr == "<"):
+                if type2 == 'int':
+                    returnList.append(Constraint(op2, None, None, "Set", op1 + "+1", 0, self.int_up, 0, op2_future ))
+                else:
+                    returnList.append(Constraint(op2, None, None, "Set", op1, 1, self.float_up, 1, op2_future))
+            if(opr == '>'):
+                if type2 == 'int':
+                    returnList.append(Constraint(op2, None, None, "Set", self.int_down, 0, op1 + "-1", 0, op2_future ))
+                else:
+                    returnList.append(Constraint(op2, None, None, "Set", self.float_down, 1, op1, 1, op2_future ))
+            if(opr == '<='):
+                if type2 == 'int':
+                    returnList.append(Constraint(op2, None, None, "Set", op1, 0, self.int_up, 0, op2_future ))
+                else:
+                    returnList.append(Constraint(op2, None, None, "Set", op1, 0, self.float_up, 1, op2_future ))
+            if(opr == '>='):
+                if type2 == 'int':
+                    returnList.append(Constraint(op2, None, None, "Set", self.int_down, 0, op1, 0, op2_future ))
+                else:
+                    returnList.append(Constraint(op2, None, None, "Set", self.float_down, 1, op1, 0, op2_future ))   
+            if(opr == '=='):
+                returnList.append(Constraint(op2, None, None, "Set", op1, 0, op1, 0, op2_future))
+            if(opr == '!='):
+                if type2 == 'int':
+                    returnList.append(Constraint(op2, None, None, "Set", op1 + "+1", 0, self.int_up, 0 , op2_future))
+                    returnList.append(Constraint(op2, None, None, "Set", self.int_down, 0, op1 + "-1", 0, op2_future))
+                else:
+                    returnList.append(Constraint(op2, None, None, "Set", op1, 1, self.float_up, 1, op2_future ))
+                    returnList.append(Constraint(op2, None, None, "Set", self.float_down, 1, op1, 1, op2_future))
         return returnList
 
 
@@ -127,7 +193,7 @@ class ExtractConstraints:
             if re.search("^int \w+;", stmt):
                 variable_name = re.sub("int ", "", stmt.strip())
                 variable_name = re.sub(";", "", variable_name)
-                self.Constraints.append(Constraint(variable_name, None, None, "Set", self.int_down, 0, self.int_up, 0))
+                self.Constraints.append(Constraint(variable_name, None, None, "Set", self.undefined, 0, self.undefined, 0, []))
                 self.Vars[variable_name] = 'int'
                 self.VarClasses[variable_name] = Variable_Class(variable_name, 'int')
                 continue
@@ -135,7 +201,7 @@ class ExtractConstraints:
             if re.search("^float \w+;", stmt):
                 variable_name = re.sub("float ", "", stmt.strip())
                 variable_name = re.sub(";", "", variable_name)             
-                self.Constraints.append(Constraint(variable_name, None, None, "Set", self.float_down, 1, self.float_up, 1))
+                self.Constraints.append(Constraint(variable_name, None, None, "Set", self.undefined, 1, self.undefined, 1, []))
                 self.Vars[variable_name] = 'float'
                 self.VarClasses[variable_name] = Variable_Class(variable_name, 'float')
                 continue
@@ -143,35 +209,72 @@ class ExtractConstraints:
             if re.search("^\w+\s=\s\S+",stmt):
                 def_name = stmt.split("=")[0].strip()
                 use_name = stmt.split("=")[1].strip(';').strip()
-                self.Constraints.append(Constraint(def_name, None, None, "Set", use_name, 0, use_name, 0))
+                def_init = re.sub("_.*", "", def_name)
+                use_init = re.sub("_.*", "", use_name)
+                if re.search("[a-zA-Z]", use_name[0]) and def_init != use_init:
+                    self.Constraints.append(Constraint(def_name, None, None, "Set", use_name, 0, use_name, 0, [use_name]))
+                else:
+                    self.Constraints.append(Constraint(def_name, None, None, "Set", use_name, 0, use_name, 0, []))
                 continue
             # 变量计算 +
             if re.search("^\w+\s=\s\S+\s\+\s\S+",stmt):
                 def_name = stmt.split("=")[0].strip()
                 use_name1 = stmt.split("=")[1].strip(';').split('+')[0].strip()
                 use_name2 = stmt.split("=")[1].strip(';').split('+')[1].strip()
-                self.Constraints.append(Constraint(def_name, use_name1, use_name2, "+", None, None, None, None))
+                future = []
+                def_init = re.sub("_.*", "", def_name)
+                use1_init = re.sub("_.*", "", use_name1)
+                use2_init = re.sub("_.*", "", use_name2)
+                if re.search("[a-zA-Z]", use_name1[0]) and def_init != use1_init:
+                    future.append(use_name1)
+                if re.search("[a-zA-Z]", use_name2[0]) and def_init != use2_init:
+                    future.append(use_name2)
+                self.Constraints.append(Constraint(def_name, use_name1, use_name2, "+", None, None, None, None, future))
                 continue
             # 变量计算 -
             if re.search("^\w+\s=\s\S+\s\-\s\S+",stmt):
                 def_name = stmt.split("=")[0].strip()
                 use_name1 = stmt.split("=")[1].strip(';').split('-')[0].strip()
                 use_name2 = stmt.split("=")[1].strip(';').split('-')[1].strip()
-                self.Constraints.append(Constraint(def_name, use_name1, use_name2, "+", None, None, None, None))
+                future = []
+                def_init = re.sub("_.*", "", def_name)
+                use1_init = re.sub("_.*", "", use_name1)
+                use2_init = re.sub("_.*", "", use_name2)
+                if re.search("[a-zA-Z]", use_name1[0]) and def_init != use1_init:
+                    future.append(use_name1)
+                if re.search("[a-zA-Z]", use_name2[0]) and def_init != use2_init:
+                    future.append(use_name2)
+                self.Constraints.append(Constraint(def_name, use_name1, use_name2, "+", None, None, None, None, future))
                 continue
             # 变量计算 *
             if re.search("^\w+\s=\s\S+\s\*\s\S+",stmt):
                 def_name = stmt.split("=")[0].strip()
                 use_name1 = stmt.split("=")[1].strip(';').split('*')[0].strip()
                 use_name2 = stmt.split("=")[1].strip(';').split('*')[1].strip()
-                self.Constraints.append(Constraint(def_name, use_name1, use_name2, "+", None, None, None, None))
+                future = []
+                def_init = re.sub("_.*", "", def_name)
+                use1_init = re.sub("_.*", "", use_name1)
+                use2_init = re.sub("_.*", "", use_name2)
+                if re.search("[a-zA-Z]", use_name1[0]) and def_init != use1_init:
+                    future.append(use_name1)
+                if re.search("[a-zA-Z]", use_name2[0]) and def_init != use2_init:
+                    future.append(use_name2)
+                self.Constraints.append(Constraint(def_name, use_name1, use_name2, "+", None, None, None, None, future))
                 continue
             # 变量计算 /
             if re.search("^\w+\s=\s\S+\s\/\s\S+",stmt):
                 def_name = stmt.split("=")[0].strip()
                 use_name1 = stmt.split("=")[1].strip(';').split('/')[0].strip()
                 use_name2 = stmt.split("=")[1].strip(';').split('/')[1].strip()
-                self.Constraints.append(Constraint(def_name, use_name1, use_name2, "+", None, None, None, None))
+                future = []
+                def_init = re.sub("_.*", "", def_name)
+                use1_init = re.sub("_.*", "", use_name1)
+                use2_init = re.sub("_.*", "", use_name2)
+                if re.search("[a-zA-Z]", use_name1[0]) and def_init != use1_init:
+                    future.append(use_name1)
+                if re.search("[a-zA-Z]", use_name2[0]) and def_init != use2_init:
+                    future.append(use_name2)
+                self.Constraints.append(Constraint(def_name, use_name1, use_name2, "+", None, None, None, None, future))
                 continue
             # PHI语句
             if re.search("^# \S+ = PHI <\S+, \S+>", stmt):
@@ -180,7 +283,7 @@ class ExtractConstraints:
                 use_name1 = re.sub("\(.*\)","", use_name1)
                 use_name2 = stmt.split("<")[1].split(",")[1].strip(">").strip()
                 use_name2 = re.sub("\(.*\)","", use_name2)
-                self.Constraints.append(Constraint(def_name, use_name1, use_name2, "PHI", None, None, None, None))
+                self.Constraints.append(Constraint(def_name, use_name1, use_name2, "PHI", None, None, None, None, []))
                 continue
             if re.search("^if .* goto .*", stmt):
                 condition = re.search("\(.*\)", stmt).group().strip("(").strip(")").strip()
@@ -197,8 +300,9 @@ class ExtractConstraints:
                     self.Constraints.append(c)
         return self.Constraints
 class Variable:
-    def __init__(self, name):
+    def __init__(self, name, var_type):
         self.name = name
+        self.var_type = var_type
         self.range_down = ''
         self.range_down_closure = ''
         self.range_up = ''
@@ -217,9 +321,9 @@ class Variable_Class:
         self.var_type = var_type
         self.Names = {}
         self.Constraints = []
-        self.Names[initial_name] = Variable(initial_name)
+        self.Names[initial_name] = Variable(initial_name, var_type)
     def addName(self, add_name):
-        self.Names[add_name] = Variable(add_name)
+        self.Names[add_name] = Variable(add_name, self.var_type)
     def addConstraint(self, add_constraint):
         self.Constraints.append(add_constraint)
     def getVariableByName(self, name):
@@ -231,7 +335,7 @@ class Variable_Class:
     
         
 class Constraint:
-    def __init__(self, define, use1, use2, operator, range_down, rdc, range_up, ruc):
+    def __init__(self, define, use1, use2, operator, range_down, rdc, range_up, ruc, need):
         self.define = define
         self.use1 = use1
         self.use2 = use2
@@ -240,6 +344,8 @@ class Constraint:
         self.range_down_closure = rdc 
         self.range_up = range_up
         self.range_up_closure = ruc
+        self.needFuture = need
+
     def print_test(self):
         print(self.define, end=" ")
         if(self.use1 == None):
