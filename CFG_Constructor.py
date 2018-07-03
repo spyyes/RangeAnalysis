@@ -6,17 +6,6 @@ Created on Thu May 31 15:45:56 2018
 """
 
 '''
-    实际上就是e-ssa
-    CFG 结构：
-    block存储：[]列表存储
-    每个statement ： 从i_5中提取i，
-    抽取所有变量，每个变量有一个范围
-    抽取所有constraint,对每个变量构建constaint graph
-    最终需要的是变量之间的关系
-    所以应该不需要语句block之间的关系，对吗？
-    但是block之间有关系，需要从block中找到statement之间的关系
-    要遍历block，构建constraint graph.
-    
     
 '''
 
@@ -25,6 +14,7 @@ Created on Thu May 31 15:45:56 2018
 ##Attention! 只处理了一个函数，还有两个函数的场景
 
 import re
+from structure import *
 
 class SSA2CFG:
     def __init__(self):
@@ -134,112 +124,17 @@ class SSA2CFG:
         print(len(self.cfg.Edges))
         for edge in self.cfg.Edges:
             print(edge.block_fm_num + " " + edge.block_to_num + " "+ edge.condition)
-          
-#CFG的辅助类          
-class Block:
-    def __init__(self, num):
-        self.Stmts = []
-        self.GotoStmt = []
-        self.IfStmts = []
-        self.Edges = []
-        self.index = num
-    def getNum(self):
-        return self.index
-    def addStmt(self, stmt):
-        self.Stmts.append(stmt)
-    def addIfStmt(self, if_stmt):
-        self.IfStmts.append(if_stmt)
-    def checkLastGoto(self):
-        last_stmt = self.Stmts[-1]
-        if "goto" in last_stmt:
-            return True
-        else:
-            return False
-#CFG的辅助类
-class Edge:
-    def __init__(self, block_fm_num, block_to_num, condition):
-        self.block_fm_num = block_fm_num
-        self.block_to_num = block_to_num
-        self.condition = condition
-#CFG类      
-class CFG:
-    def __init__(self):
-        self.Blocks = []
-        self.Edges = []
-        self.Arguments = []
-    def addBlock(self, b):
-        self.Blocks.append(b)
-    def addEdge(self, e):
-        self.Edges.append(e)
-    def addArgument(self, a):
-        self.Arguments.append(a)
-    def getBlockByNum(self, num):
-        for b in self.Blocks:
-            if b.getNum() == num:
-                return b
-        return None
-           
-    def getBlockOutEdges(self, num):
-        result = []
-        for edge in self.Edges:
-            if edge.block_fm_num == num:
-                result.append(edge)
-        return result
-    def getBlockGotos(self, num):
-        result = []
-        for edge in self.Edges:
-            if edge.block_fm_num == num:
-                result.append(edge.block_to_num)
-        return result
-    def getRootBlock(self):
-        return self.getBlockByNum(1)
-
-class Range:
-    def __init__(self):
-        self.low = ''
-        self.high = ''
-
-#Constraint Graph Node
-class MyNode:
-    def __init__(self, t= "", name = "",  args = [], result = [], fromBlock = 0, Statement = ''):
-        self.type = t #leave 叶节点存放范围和值 #op运算符 #i变量名
-        self.name = name  #用于变量的存储
-        self.args = args
-        self.result = result
-        self.Conditions = []
-        self.fromBlock = fromBlock
-        self.Statement = Statement
-    
-    def addArgument(self, argument):
-        if not argument in self.args:
-            self.args.append(argument)
-            return
-            
-
-    def addResult(self, r):
-        if not r in self.result:
-            self.result.append(r)
-    
-    def addCondition(self, c):
-        self.Conditions.append(c)
-
-#Condition
-class MyCondition:
-    def __init__(self, condition, index):
-        self.condition = condition
-        self.arg1 = condition.split()[0].strip()
-        self.arg2 = condition.split()[2].strip()
-        self.op = condition.split()[1].strip()
-        self.index = index
 
 
-
-#Contraint Graph Construct
+'''
+    Contraint Graph Construct
+'''
 class ConstraintGraph:
     def __init__(self):
         self.MyNodes = []
         self.MyConditions = []
         
+    #从self.MyNodes中获取节点或新建节点
     def getNode(self, name = '', args = [], result = [], fromBlock = 0, Statement = ''):
         if "_" in name:
             newtype = 'var'
@@ -259,12 +154,22 @@ class ConstraintGraph:
             self.MyNodes.append(n)
             return n
     
-    def getCondition(self, condition = ''):
+    #从self.MyConditions中获取条件的序号
+    def getConditionIndex(self, condition = ''):
         for c in self.MyConditions:
             if c.condition == condition.strip():
                 return c.index
 
-
+    #得到ssa中一条stmt对应的MyNode
+    def getNodesByStmt(self, stmt):
+        result = []
+        stmt = stmt.strip(";")
+        for myNode in self.MyNodes:
+            if myNode.Statement.strip() == stmt.strip():
+                result.append(myNode)
+        return result
+    
+    
     #构建SSA的Constraint Graph
     def construct(self, cfg):
         for Block in cfg.Blocks:
@@ -284,8 +189,10 @@ class ConstraintGraph:
                     leftNode = self.getNode(name = left, args = [rightNode], result = [], fromBlock = Block.index,  Statement = stmt)
                     leftNode.addArgument(rightNode)
                     rightNode.addResult(leftNode)
+                    leftNode.fromBlock = Block.index
+                    rightNode.fromBlock = Block.index
                     continue
-                if "if" in stmt:
+                if "if" in stmt:    #在essaconstruct中处理条件节点
                     print(stmt)
                     continue
                 if "=" in stmt:
@@ -303,30 +210,42 @@ class ConstraintGraph:
                         leftNode = self.getNode(name = left, args = [rightNode], result = [], fromBlock = Block.index,  Statement = stmt)
                         leftNode.addArgument(rightNode)
                         rightNode.addResult(leftNode)
+                        leftNode.fromBlock = Block.index
+                        rightNode.fromBlock = Block.index
                     else:
                         right = rights
                         rightNode = self.getNode(name = right, args = [], result = [], fromBlock = Block.index,  Statement = stmt)
                         leftNode = self.getNode(name = left, args = [], result = [], fromBlock = Block.index,  Statement = stmt)
                         leftNode.addArgument(rightNode)
                         rightNode.addResult(leftNode)
+                        leftNode.fromBlock = Block.index
     
-    #得到对应的stmt的MyNode
-    def getNodesByStmt(self, stmt):
-        result = []
-        stmt = stmt.strip(";")
-        for myNode in self.MyNodes:
-            if myNode.Statement.strip() == stmt.strip():
-                result.append(myNode)
-        return result
 
+    #构建E-SSA的Constraint Graph
+    def essaConstruct(self, cfg):
+        for Block in cfg.Blocks:
+            for stmt in Block.Stmts:
+                if 'if' in stmt:
+                    condition = re.search("\(.*\)", stmt).group(0)[1:-1]
+                    if 'not' in condition:
+                        condition = re.sub("^not", '', condition)
+                        index = self.getConditionIndex(condition)
+                        self.addCondition(Block.index, stmt, index, cfg, 1)
+                    else:
+                        index =  len(self.MyConditions)
+                        self.MyConditions.append(MyCondition(condition,index))
+                        self.addCondition(Block.index, stmt, index, cfg, 0)
 
-    def getBlockByIndex(self, cfg, index):
-        for block in cfg.Blocks:
-            if str(block.index) == str(index):
-                return block
     
+    #把一个条件关联到所以相关的node中
     #参数：block id , stmt_init, index(condition参数），cfg, tf
     def addCondition(self, index_init, stmt_init, index, cfg, tf):
+        condition1 = self.MyConditions[index].arg1
+        condition2 = self.MyConditions[index].arg2
+        if(not "_" in condition1):
+            condition1 = "CONST"
+        if(not "_" in condition2):
+            condition2 = "CONST"        
         gotostmt = re.sub(".*goto", "", stmt_init)
         goto_id = int(re.search("\d+", gotostmt).group(0).strip())
         GotoBlocks = [goto_id]
@@ -335,7 +254,7 @@ class ConstraintGraph:
             goto_id = GotoBlocks[0]
             checkedBlock.append(goto_id)
             GotoBlocks.remove(goto_id)
-            block =  self.getBlockByIndex(cfg, goto_id)
+            block =  cfg.getBlockByIndex(goto_id)
             for stmt in block.Stmts:
                 #添加节点
                 if 'goto' in stmt:
@@ -346,10 +265,18 @@ class ConstraintGraph:
                     else:
                         GotoBlocks.append(goto_id_)
                         continue
+                if (not condition1 in stmt) and (not condition2 in stmt):   
+                    continue
                     
                 nodes = self.getNodesByStmt(stmt)
                 
                 for node in nodes:
+                    #不在此定义的节点
+                    if node.fromBlock !=  block.index:
+                        continue
+                    #常量节点
+                    if node.type == 'leaf':
+                        continue
                     if [index, 1 - tf] in node.Conditions:
                         node.Conditions.remove([index, 1 - tf])
                     else:
@@ -363,30 +290,6 @@ class ConstraintGraph:
                 else:
                     GotoBlocks.append(goto_id_)
                     continue
-                
-
-
-
-
-
-
-    #添加e-ssa相关的Constraint Graph
-    def essaConstruct(self, cfg):
-        for Block in cfg.Blocks:
-            for stmt in Block.Stmts:
-                if 'if' in stmt:
-                    condition = re.search("\(.*\)", stmt).group(0)[1:-1]
-                    if 'not' in condition:
-                        condition = re.sub("^not", '', condition)
-                        index = self.getCondition(condition)
-
-                        self.addCondition(Block.index, stmt, index, cfg, 1)
-                    else:
-                        index =  len(self.MyConditions)
-                        self.MyConditions.append(MyCondition(condition,index ))
-                        self.addCondition(Block.index, stmt, index, cfg, 0)
-
-
     #DEBUG
     def printGraph(self):
         for Node in self.MyNodes:
@@ -414,7 +317,7 @@ class ConstraintGraph:
         
 if __name__ == '__main__':
     ssa2cfg = SSA2CFG()
-    cfg = ssa2cfg.construct("C:\\Users\\spy\\Desktop\\t1.ssa")
+    cfg = ssa2cfg.construct("C:\\Users\\spy\\Desktop\\t3.ssa")
     c = ConstraintGraph()
     c.construct(cfg)
     c.essaConstruct(cfg)
