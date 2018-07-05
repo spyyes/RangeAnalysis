@@ -114,6 +114,7 @@ class SSA2CFG:
             self.cfg.getBlockByNum(cur_block_id).addStmt(ssa_line.strip())
             index = index + 1
         return self.cfg    
+    
     def check(self):
         print(len(self.cfg.Blocks))
         for block in  self.cfg.Blocks:
@@ -168,6 +169,11 @@ class ConstraintGraph:
             if myNode.Statement.strip() == stmt.strip():
                 result.append(myNode)
         return result
+    
+    def getNodeByName(self, name):
+        for myNode in self.MyNodes:
+            if myNode.name == name:
+                return myNode
     
     
     #构建SSA的Constraint Graph
@@ -294,15 +300,16 @@ class ConstraintGraph:
     def printGraph(self):
         for Node in self.MyNodes:
             print(Node.type + " "+ Node.name + " " + " in " + Node.fromBlock,end = ' : ' )
-            print("Arguments: ", end = '')
+            print("|Arguments: ", end = '')
             for x in Node.args:
                 print(x.name, end = ',')
-            print("Result: ", end = "")
+            print("|Result: ", end = "")
             for x in Node.result:
                 print(x.name, end = ',')
-            print("Conditions:", end = " ")
+            print("|Conditions:", end = " ")
             for c in Node.Conditions:
                 print(c[0], end = " ")
+                print(c[1], end = "|")
             print()
             continue
             
@@ -317,7 +324,7 @@ class ConstraintGraph:
         
 if __name__ == '__main__':
     ssa2cfg = SSA2CFG()
-    cfg = ssa2cfg.construct("C:\\Users\\spy\\Desktop\\t3.ssa")
+    cfg = ssa2cfg.construct("C:\\Users\\spy\\Desktop\\t1.ssa")
     c = ConstraintGraph()
     c.construct(cfg)
     c.essaConstruct(cfg)
