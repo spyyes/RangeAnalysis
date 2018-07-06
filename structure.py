@@ -8,13 +8,29 @@ Created on Tue Jul  3 00:19:15 2018
 #Range由两个Bound组成，Bound是现在得到的界限，运算由节点之间的关系决定
 # inf 最大值 ； -inf 最小值; None 未设置； Null 不存在 
 class Range:
-    def __init__(self, ):
+    def __init__(self ):
         self.lowBound = Bound()
         self.highBound = Bound()
         self.needFuture = False
     
+    def setByValue(self, vl, vh, size):
+        self.lowBound = Bound()
+        self.lowBound.value = vl
+        self.highBound = Bound()
+        self.highBound.value = vh
+        self.lowBound.size = size
+        self.highBound.size = size
+        self.needFuture = False
+    
     def setFuture(self, tf):
         self.needFuture = tf
+
+    def copyRange(self, rb):
+        self.lowBound.value = rb.lowBound.value
+        self.highBound.value = rb.highBound.value
+        self.lowBound.size = rb.lowBound.size
+        self.highBound.size = rb.highBound.size
+
         
     #两个范围的比较函数
     def compare2Bound(self, Bound1, Bound2):
@@ -65,6 +81,7 @@ class MyNode:
         self.Statement = Statement  #在SSA中的哪条Statement中
         self.Range = ''
         self.size = ''
+        self.input = False
     
     def addArgument(self, argument):
         if not argument in self.args:
@@ -82,13 +99,15 @@ class MyNode:
     
     def setRange(self, vl, vh, size):
         modify = False
-        if self.Range.lowBound.size != size\
-         or self.Range.highBound.size != size\
-         or self.Range.lowBound.value != vl\
+        if self.Range.lowBound.value != vl\
          or self.Range.highBound.value != vh:
              modify = True         
-        self.Range.lowBound.size = size
-        self.Range.highBound.size = size
+        if self.Range.lowBound.size != 'int' and size == 'int':
+            self.Range.lowBound.size = size
+            modify = True
+        if self.Range.highBound.size != 'int' and size == 'int':
+            self.Range.highBound.size = size
+            modify = True
         self.Range.lowBound.value = vl
         self.Range.highBound.value = vh
         return modify
@@ -100,7 +119,9 @@ class MyNode:
         return self.setRange(vl, vh, size)
 
     def checkRange(self):
-        if self.Range.lowBound.size == 'None':
+        if self.Range.lowBound.value == 'None'\
+        or self.Range.lowBound.value == 'Not Exists'\
+        or self.Range.highBound.value == 'Not Exists':
             return False
         else:
             return True
@@ -110,6 +131,7 @@ class MyNode:
         vh = node2.Range.highBound.value
         size = node2.Range.lowBound.size
         return self.setRange(vl, vh, size)
+
     
     def printRange(self):
         print("Range: " + str(self.Range.lowBound.value) + " " + str(self.Range.highBound.value)  )

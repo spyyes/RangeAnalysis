@@ -44,11 +44,13 @@ class SSA2CFG:
             if ssa_line.strip().startswith(";;"):
                 index = index + 1
                 continue
+
             if ssa_line.strip() == '{' or ssa_line.strip() =='}':
                 index = index + 1
                 continue
             #函数声明
-            if has_method_declaration == False: #函数声明行
+            if re.search("^[a-z0-9A-Z_]*\s*\(.*\)$", ssa_line) \
+            and has_method_declaration == False:
                 arguments = re.search("\(.*\)", ssa_line).group(0)
                 arguments = arguments[1:-1]
                 if(arguments != ''):
@@ -131,9 +133,10 @@ class SSA2CFG:
     Contraint Graph Construct
 '''
 class ConstraintGraph:
-    def __init__(self):
+    def __init__(self, cfg):
         self.MyNodes = []
         self.MyConditions = []
+        self.cfg = cfg
         
     #从self.MyNodes中获取节点或新建节点
     def getNode(self, name = '', args = [], result = [], fromBlock = 0, Statement = ''):
@@ -174,8 +177,7 @@ class ConstraintGraph:
         for myNode in self.MyNodes:
             if myNode.name == name:
                 return myNode
-    
-    
+
     #构建SSA的Constraint Graph
     def construct(self, cfg):
         for Block in cfg.Blocks:
@@ -324,8 +326,8 @@ class ConstraintGraph:
         
 if __name__ == '__main__':
     ssa2cfg = SSA2CFG()
-    cfg = ssa2cfg.construct("C:\\Users\\spy\\Desktop\\t1.ssa")
-    c = ConstraintGraph()
+    cfg = ssa2cfg.construct("C:\\Users\\spy\\Desktop\\RangeAnalysis\\benchmark\\t1.ssa")
+    c = ConstraintGraph(cfg)
     c.construct(cfg)
     c.essaConstruct(cfg)
     c.printGraph()
