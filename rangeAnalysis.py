@@ -1,405 +1,555 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Jun  1 20:01:09 2018
+Created on Tue Jul  3 10:52:10 2018
 
 @author: spy
 """
-from CFG_Constructor import SSA2CFG
 import re
-import sys
+from structure import *
+from eSSAConstraintGraph import *
 
-class ExtractConstraints:
-    def __init__(self, cfg):
-        self.cfg = cfg
-        self.Vars = {}
-        self.Constraints = []
-        self.VarClasses = {}
-        self.int_down = "minint"
-        self.int_up = "maxint"
-        self.float_down = "minfloat"
-        self.float_up = "maxfloat"
-        self.undefined = "undefined"
+
+class RangeAna:
+    def __init__(self, c):
+        self.ConstraintGraph = c
     
-    #专为 else设计的条件翻转
-    def trans_OP(self, op):
-        if(op == "<"):
-            return ">="
-        if(op == ">"):
-            return "<="
-        if(op == "<="):
-            return ">"
-        if(op == ">="):
-            return "<"
-        if(op == "=="):
-            return "!="
-        if(op == "!="):
-            return "=="
+    #获得所有叶节点
+    def getAllLeaves(self):
+        result = []
+        for myNode in self.ConstraintGraph.MyNodes:
+            if myNode.type == 'leaf':
+                result.append(myNode)
+        return result
     
-    #条件语句的范围分析
-    def condition_Constraint(self, op1, opr, op2):
-        op1_name = re.sub("_.*", "", op1)
-        op2_name = re.sub("_.*", "", op2)
-        if(op1_name in self.Vars):
-            type1 = self.Vars[op1_name]
-        else:
-            if("." in op1_name):
-                type1 = "float"
-            else:
-                type1 = "int"
-        if(op2_name in self.Vars):
-            type2 = self.Vars[op2_name]
-        else:
-            if("." in op2_name):
-                type2 = "float"
-            else:
-                type2 = "int"
-        op1_future = []
-        op2_future = []
-        returnList = []
-        if op1_name in self.Vars and op2_name in self.Vars and op1_name!= op2_name:
-            op1_future = [op2]
-            op2_future = [op1]
-            if(opr == "<"):
-                if type1 == 'int':
-                    returnList.append(Constraint(op1, None, None, "Set", self.int_down, 0, op2 + '-1' , 0, op1_future))
-                else:
-                    returnList.append(Constraint(op1, None, None, "Set", self.float_down, 1, op2, 1, op1_future ))
-                
-                if type2 == 'int':
-                    returnList.append(Constraint(op2, None, None, "Set", op1 + "+1", 0, self.int_up, 0, op2_future ))
-                else:
-                    returnList.append(Constraint(op2, None, None, "Set", op1, 1, self.float_up, 1, op2_future))
-            if(opr == '>'):
-                if type1 == 'int':
-                    returnList.append(Constraint(op1, None, None, "Set", op2 + "+1", 0, self.int_up, 0, op1_future ))
-                else:
-                    returnList.append(Constraint(op1, None, None, "Set", op2, 1, self.float_up, 1, op1_future))
-                
-                if type2 == 'int':
-                    returnList.append(Constraint(op2, None, None, "Set", self.int_down, 0, op1 + "-1", 0, op2_future ))
-                else:
-                    returnList.append(Constraint(op2, None, None, "Set", self.float_down, 1, op1, 1, op2_future ))
-            if(opr == '<='):
-                if type1 == 'int':
-                    returnList.append(Constraint(op1, None, None, "Set", self.int_down, 0, op2 , 0, op1_future ))
-                else:
-                    returnList.append(Constraint(op1, None, None, "Set", self.float_down, 1, op2, 0, op1_future ))
-                
-                if type2 == 'int':
-                    returnList.append(Constraint(op2, None, None, "Set", op1, 0, self.int_up, 0, op2_future ))
-                else:
-                    returnList.append(Constraint(op2, None, None, "Set", op1, 0, self.float_up, 1, op2_future ))
-            if(opr == '>='):
-                if type1 == 'int':
-                    returnList.append(Constraint(op1, None, None, "Set", op2, 0, self.int_up, 0, op1_future ))
-                else:
-                    returnList.append(Constraint(op1, None, None, "Set", op2, 0, self.float_up, 1, op1_future))
-                
-                if type2 == 'int':
-                    returnList.append(Constraint(op2, None, None, "Set", self.int_down, 0, op1, 0, op2_future ))
-                else:
-                    returnList.append(Constraint(op2, None, None, "Set", self.float_down, 1, op1, 0, op2_future ))   
-            if(opr == '=='):
-                returnList.append(Constraint(op1, None, None, "Set", op2, 0, op2, 0, op1_future))
-                returnList.append(Constraint(op2, None, None, "Set", op1, 0, op1, 0, op2_future))
-            if(opr == '!='):
-                if type1 == 'int':
-                    returnList.append(Constraint(op1, None, None, "Set", op2 + "+1", 0, self.int_up, 0, op1_future ))
-                    returnList.append(Constraint(op1, None, None, "Set", self.int_down, 0, op2 + "-1", 0, op1_future))
-                else:
-                    returnList.append(Constraint(op1, None, None, "Set", op2, 1, self.float_up, 1, op1_future ))
-                    returnList.append(Constraint(op1, None, None, "Set", self.float_down, 1, op2, 1, op1_future))
-                
-                if type2 == 'int':
-                    returnList.append(Constraint(op2, None, None, "Set", op1 + "+1", 0, self.int_up, 0 , op2_future))
-                    returnList.append(Constraint(op2, None, None, "Set", self.int_down, 0, op1 + "-1", 0, op2_future))
-                else:
-                    returnList.append(Constraint(op2, None, None, "Set", op1, 1, self.float_up, 1, op2_future ))
-                    returnList.append(Constraint(op2, None, None, "Set", self.float_down, 1, op1, 1, op2_future))
-        elif op1_name in self.Vars and not op2_name in self.Vars:
-            if(opr == "<"):
-                if type1 == 'int':
-                    returnList.append(Constraint(op1, None, None, "Set", self.int_down, 0, op2 + '-1' , 0, op1_future))
-                else:
-                    returnList.append(Constraint(op1, None, None, "Set", self.float_down, 1, op2, 1, op1_future ))
-            if(opr == '>'):
-                if type1 == 'int':
-                    returnList.append(Constraint(op1, None, None, "Set", op2 + "+1", 0, self.int_up, 0, op1_future ))
-                else:
-                    returnList.append(Constraint(op1, None, None, "Set", op2, 1, self.float_up, 1, op1_future))
-            if(opr == '<='):
-                if type1 == 'int':
-                    returnList.append(Constraint(op1, None, None, "Set", self.int_down, 0, op2 , 0, op1_future ))
-                else:
-                    returnList.append(Constraint(op1, None, None, "Set", self.float_down, 1, op2, 0, op1_future ))
-            if(opr == '>='):
-                if type1 == 'int':
-                    returnList.append(Constraint(op1, None, None, "Set", op2, 0, self.int_up, 0, op1_future ))
-                else:
-                    returnList.append(Constraint(op1, None, None, "Set", op2, 0, self.float_up, 1, op1_future))
-            if(opr == '=='):
-                returnList.append(Constraint(op1, None, None, "Set", op2, 0, op2, 0, op1_future))
-            if(opr == '!='):
-                if type1 == 'int':
-                    returnList.append(Constraint(op1, None, None, "Set", op2 + "+1", 0, self.int_up, 0, op1_future ))
-                    returnList.append(Constraint(op1, None, None, "Set", self.int_down, 0, op2 + "-1", 0, op1_future))
-                else:
-                    returnList.append(Constraint(op1, None, None, "Set", op2, 1, self.float_up, 1, op1_future ))
-                    returnList.append(Constraint(op1, None, None, "Set", self.float_down, 1, op2, 1, op1_future))
-        elif op2_name in self.Vars and not op1_name in self.Vars:
-            if(opr == "<"):
-                if type2 == 'int':
-                    returnList.append(Constraint(op2, None, None, "Set", op1 + "+1", 0, self.int_up, 0, op2_future ))
-                else:
-                    returnList.append(Constraint(op2, None, None, "Set", op1, 1, self.float_up, 1, op2_future))
-            if(opr == '>'):
-                if type2 == 'int':
-                    returnList.append(Constraint(op2, None, None, "Set", self.int_down, 0, op1 + "-1", 0, op2_future ))
-                else:
-                    returnList.append(Constraint(op2, None, None, "Set", self.float_down, 1, op1, 1, op2_future ))
-            if(opr == '<='):
-                if type2 == 'int':
-                    returnList.append(Constraint(op2, None, None, "Set", op1, 0, self.int_up, 0, op2_future ))
-                else:
-                    returnList.append(Constraint(op2, None, None, "Set", op1, 0, self.float_up, 1, op2_future ))
-            if(opr == '>='):
-                if type2 == 'int':
-                    returnList.append(Constraint(op2, None, None, "Set", self.int_down, 0, op1, 0, op2_future ))
-                else:
-                    returnList.append(Constraint(op2, None, None, "Set", self.float_down, 1, op1, 0, op2_future ))   
-            if(opr == '=='):
-                returnList.append(Constraint(op2, None, None, "Set", op1, 0, op1, 0, op2_future))
-            if(opr == '!='):
-                if type2 == 'int':
-                    returnList.append(Constraint(op2, None, None, "Set", op1 + "+1", 0, self.int_up, 0 , op2_future))
-                    returnList.append(Constraint(op2, None, None, "Set", self.int_down, 0, op1 + "-1", 0, op2_future))
-                else:
-                    returnList.append(Constraint(op2, None, None, "Set", op1, 1, self.float_up, 1, op2_future ))
-                    returnList.append(Constraint(op2, None, None, "Set", self.float_down, 1, op1, 1, op2_future))
-        return returnList
-
-
+    #初始化所有叶节点
+    def initializeLeafs(self):
+        LeafNodes = self.getAllLeaves()
+        for node in LeafNodes:
+            node.size = 'float'
+            node.setRange(float(node.name), float(node.name), "float")
+        for statement in self.ConstraintGraph.cfg.Blocks[0].Stmts:
+            statement = statement.strip(';')
+            size = statement.split()[0]
+            name = statement.split()[1]
+            for node in self.ConstraintGraph.MyNodes:
+                if node.name.startswith(name):
+                    node.Range.lowBound.size = size
+                    node.Range.highBound.size = size
+        for var in self.ConstraintGraph.cfg.Arguments:
+            var_size = var.split()[0]
+            var_name = var.split()[1]
+            var1, var2 = input("Enter Range For " + var_name + ": ").split()
+            for node in self.ConstraintGraph.MyNodes:
+                if node.name.startswith(var_name):
+                    node.Range.lowBound.size = var_size
+                    node.Range.highBound.size = var_size
+                    node.Range.lowBound.value = var1
+                    node.Range.highBound.value = var2
             
-    def getConstraints(self):
-        #rootBlock = self.cfg.getRootBlock()
-        #rootBlock = self.cfg.getBlockByNum('5')
-        Stmts = []
-        for block in self.cfg.Blocks:
-            for stmt in block.Stmts:
-                Stmts.append(stmt)
+   
+    
+    #Widen Operation
+    def WidenOP(self, node):
+        if node.name == '+':
+            result = self.add(node.args[0].Range, node.args[1].Range)
+        if node.name == '-':
+            result = self.minus(node.args[0].Range, node.args[1].Range)
+        if node.name == '*':
+            result = self.multi(node.args[0].Range, node.args[1].Range)
+        if node.name == '/':
+            result = self.div(node.args[0].Range, node.args[1].Range)
+        if node.name == 'PHI':
+            result = self.phi(node.args[0].Range, node.args[1].Range)
+
+        if node.Range.lowBound.value == 'None' and node.Range.highBound.value == 'None':
+            return node.setByRange(result)
+        if node.Range.lowBound.value == 'Not Exists' and node.Range.highBound.value == 'Not Exists':
+            return False
         
-        for stmt in Stmts:
-            #变量声明 int
-            if re.search("^int \w+;", stmt):
-                variable_name = re.sub("int ", "", stmt.strip())
-                variable_name = re.sub(";", "", variable_name)
-                self.Constraints.append(Constraint(variable_name, None, None, "Set", self.undefined, 0, self.undefined, 0, []))
-                self.Vars[variable_name] = 'int'
-                self.VarClasses[variable_name] = Variable_Class(variable_name, 'int')
-                continue
-            #变量声明 float
-            if re.search("^float \w+;", stmt):
-                variable_name = re.sub("float ", "", stmt.strip())
-                variable_name = re.sub(";", "", variable_name)             
-                self.Constraints.append(Constraint(variable_name, None, None, "Set", self.undefined, 1, self.undefined, 1, []))
-                self.Vars[variable_name] = 'float'
-                self.VarClasses[variable_name] = Variable_Class(variable_name, 'float')
-                continue
-            # 变量赋值 a = b
-            if re.search("^\w+\s=\s\S+",stmt):
-                def_name = stmt.split("=")[0].strip()
-                use_name = stmt.split("=")[1].strip(';').strip()
-                def_init = re.sub("_.*", "", def_name)
-                use_init = re.sub("_.*", "", use_name)
-                if re.search("[a-zA-Z]", use_name[0]) and def_init != use_init:
-                    self.Constraints.append(Constraint(def_name, None, None, "Set", use_name, 0, use_name, 0, [use_name]))
+        if float(result.lowBound.value) < float(node.Range.lowBound.value) \
+         and float(result.highBound.value) > float(node.Range.highBound.value):
+            return node.setRange('-inf', 'inf', result.lowBound.size)
+        if float(result.lowBound.value) < float(node.Range.lowBound.value):
+            return node.setRange('-inf', node.Range.highBound.value, result.lowBound.size)
+        if float(result.highBound.value) > float(node.Range.highBound.value):
+            return node.setRange(node.Range.lowBound.value, 'inf', result.lowBound.size)
+
+    def NarrowOP(self, node):
+        if node.name == '+':
+            result = self.add(node.args[0].Range, node.args[1].Range)
+        if node.name == '-':
+            result = self.minus(node.args[0].Range, node.args[1].Range)
+        if node.name == '*':
+            result = self.multi(node.args[0].Range, node.args[1].Range)
+        if node.name == '/':
+            result = self.div(node.args[0].Range, node.args[1].Range)
+        if node.name == 'PHI':
+            result = self.phi(node.args[0].Range, node.args[1].Range)
+
+        if node.Range.lowBound.value == '-inf' and result.lowBound.value != '-inf':
+            return node.setRange(result.lowBound.value, node.Range.highBound.value, node.Range.lowBound.size)
+        if node.Range.highBound.value == 'inf' and result.highBound.value != 'inf':
+            return node.setRange(node.Range.lowBound.value, result.highBound.value, node.Range.lowBound.size)
+        if float(node.Range.lowBound.value) > float(result.lowBound.value):
+            return node.setRange(result.lowBound.value, node.Range.highBound.value, result.lowBound.size) 
+        if float(node.Range.highBound.value) < float(result.highBound.value):
+            return node.setRange(node.Range.lowBound.value, result.highBound.value, node.Range.lowBound.size)
+
+    def ConditionHandle(self, ininode):
+        #考虑每一个参数都有可能和Condition有关
+        resultRange = Range()
+        resultRange.copyRange(ininode.Range)
+                     
+        
+        
+        for node in ininode.args:
+
+            if len(ininode.Conditions) == 0:
+                return False
+
+            for con in ininode.Conditions:
+                myCondition = self.ConstraintGraph.getConditionByIndex(con[0])
+                #myCondition = self.ConstraintGraph.MyConditions[con[0]]
+                tf = con[1]
+                tempRange = '0'
+                if tf == 0:
+                    if node.name == myCondition.arg1:
+                        if self.ConstraintGraph.getNodeByName(myCondition.arg2) == None:
+                            arg2 = re.sub("#.*", "", myCondition.arg2)
+                            if myCondition.op == '<':
+                                if node.Range.lowBound.size == 'int':
+                                    tempRange = Range()
+                                    tempRange.setByValue('-inf', float(arg2) - 1, 'int')
+                                else:
+                                    tempRange = Range()
+                                    tempRange.setByValue('-inf', float(arg2), 'float')
+                            if myCondition.op == '<=':
+                                tempRange = Range()
+                                tempRange.setByValue('-inf', float(arg2), resultRange.lowBound.size)
+                            if myCondition.op == '>':
+                                if resultRange.lowBound.size == 'int':
+                                    tempRange = Range()
+                                    tempRange.setByValue(float(arg2) + 1, 'inf', 'int')
+                                else:
+                                    tempRange = Range()
+                                    tempRange.setByValue(float(arg2), 'inf', 'float')
+                            if myCondition.op == '>=':
+                                tempRange = Range()
+                                tempRange.setByValue(float(arg2), 'inf', resultRange.lowBound.size)
+                            if myCondition.op == '==':
+                                tempRange = Range()
+                                tempRange.setByValue(float(arg2), float(arg2), resultRange.lowBound.size)
+                        else:
+                            if myCondition.op == '<':
+                                if resultRange.lowBound.size == 'int':
+                                    tempRange = Range()
+                                    tempRange.setByValue('-inf', float(self.ConstraintGraph.getNodeByName(myCondition.arg2).Range.highBound.value) - 1, 'int')
+                                else:
+                                    tempRange = Range()
+                                    tempRange.setByValue('-inf', float(self.ConstraintGraph.getNodeByName(myCondition.arg2).Range.highBound.value), 'float')
+                            if myCondition.op == '<=':
+                                tempRange = Range()
+                                tempRange.setByValue('-inf', float(self.ConstraintGraph.getNodeByName(myCondition.arg2).Range.highBound.value),resultRange.lowBound.size)
+                            if myCondition.op == '>':
+                                if resultRange.lowBound.size == 'int':
+                                    tempRange = Range()
+                                    tempRange.setByValue(float(self.ConstraintGraph.getNodeByName(myCondition.arg2).Range.lowBound.value) + 1, 'inf', 'int')
+                                else:
+                                    tempRange = Range()
+                                    tempRange.setByValue(float(self.ConstraintGraph.getNodeByName(myCondition.arg2).Range.lowBound.value), 'inf', 'float')
+                            if myCondition.op == '>=':
+                                tempRange = Range()
+                                tempRange.setByValue(float(self.ConstraintGraph.getNodeByName(myCondition.arg2).Range.lowBound.value), 'inf',resultRange.lowBound.size)
+                            if myCondition.op == '==':
+                                tempRange = Range()
+                                tempRange.setByValue(float(self.ConstraintGraph.getNodeByName(myCondition.arg2).Range.lowBound.value), float(self.ConstraintGraph.getNodeByName(myCondition.arg2).Range.highBound.value), resultRange.lowBound.size)
+                        #交的范围
+                        if not tempRange == '0' and not resultRange.highBound.value == 'Not Exists': 
+                            resultRange = self.intersect(tempRange, resultRange)
+                        #if myCondition.op == '!=':
+
+                    if node.name == myCondition.arg2:
+                        if self.ConstraintGraph.getNodeByName(myCondition.arg1) == None:
+                            arg1 = re.sub("#.*", "", myCondition.arg1)
+                            if myCondition.op == '<':
+                                if resultRange.lowBound.size == 'int':
+                                    tempRange = Range()
+                                    tempRange.setByValue(float(arg1) + 1, 'inf', 'int')
+                                else:
+                                    tempRange = Range()
+                                    tempRange.setByValue(float(arg1), 'inf', 'float')
+                            if myCondition.op == '<=':
+                                tempRange = Range()
+                                tempRange.setByValue(float(arg1),'inf', resultRange.lowBound.size)
+                            if myCondition.op == '>':
+                                if resultRange.lowBound.size == 'int':
+                                    tempRange = Range()
+                                    tempRange.setByValue('-inf', float(arg1) - 1, 'int')
+                                else:
+                                    tempRange = Range()
+                                    tempRange.setByValue('-inf', float(arg1), 'float')
+                            if myCondition.op == '>=':
+                                tempRange = Range()
+                                tempRange.setByValue('-inf', float(arg1), resultRange.lowBound.size)
+                            if myCondition.op == '==':
+                                tempRange = Range()
+                                tempRange.setByValue(float(arg1), float(arg1), resultRange.lowBound.size)
+                        else:
+                            if myCondition.op == '<':
+                                if node.Range.lowBound.size == 'int':
+                                    tempRange = Range()
+                                    tempRange.setByValue(float(self.ConstraintGraph.getNodeByName(myCondition.arg1).Range.lowBound.value) + 1, 'inf', 'int')
+                                else:
+                                    tempRange = Range()
+                                    tempRange.setByValue(float(self.ConstraintGraph.getNodeByName(myCondition.arg1).Range.lowBound.value), 'inf', 'float')
+                            if myCondition.op == '<=':
+                                tempRange = Range()
+                                tempRange.setByValue(float(self.ConstraintGraph.getNodeByName(myCondition.arg1).Range.lowBound.value),'inf', node.Range.lowBound.size)
+                            if myCondition.op == '>':
+                                if node.Range.lowBound.size == 'int':
+                                    tempRange = Range()
+                                    tempRange.setByValue('-inf', float(self.ConstraintGraph.getNodeByName(myCondition.arg1).Range.highBound.value) - 1, 'int')
+                                else:
+                                    tempRange = Range()
+                                    tempRange.setByValue('-inf', float(self.ConstraintGraph.getNodeByName(myCondition.arg1).Range.highBound.value), 'float')
+                            if myCondition.op == '>=':
+                                tempRange = Range()
+                                tempRange.setByValue('-inf', float(self.ConstraintGraph.getNodeByName(myCondition.arg1).Range.highBound.value),node.Range.lowBound.size)
+                            if myCondition.op == '==':
+                                tempRange = Range()
+                                tempRange.setByValue(float(self.ConstraintGraph.getNodeByName(myCondition.arg1).Range.lowBound.value), float(self.ConstraintGraph.getNodeByName(myCondition.arg1).Range.highBound.value), node.Range.lowBound.size)
+
+                        #交的范围
+                        if not tempRange == '0' and not resultRange.highBound.value == 'Not Exists': 
+                            resultRange = self.intersect(tempRange, resultRange)
+                        #if myCondition.op == '!=':
                 else:
-                    self.Constraints.append(Constraint(def_name, None, None, "Set", use_name, 0, use_name, 0, []))
-                continue
-            # 变量计算 +
-            if re.search("^\w+\s=\s\S+\s\+\s\S+",stmt):
-                def_name = stmt.split("=")[0].strip()
-                use_name1 = stmt.split("=")[1].strip(';').split('+')[0].strip()
-                use_name2 = stmt.split("=")[1].strip(';').split('+')[1].strip()
-                future = []
-                def_init = re.sub("_.*", "", def_name)
-                use1_init = re.sub("_.*", "", use_name1)
-                use2_init = re.sub("_.*", "", use_name2)
-                if re.search("[a-zA-Z]", use_name1[0]) and def_init != use1_init:
-                    future.append(use_name1)
-                if re.search("[a-zA-Z]", use_name2[0]) and def_init != use2_init:
-                    future.append(use_name2)
-                self.Constraints.append(Constraint(def_name, use_name1, use_name2, "+", None, None, None, None, future))
-                continue
-            # 变量计算 -
-            if re.search("^\w+\s=\s\S+\s\-\s\S+",stmt):
-                def_name = stmt.split("=")[0].strip()
-                use_name1 = stmt.split("=")[1].strip(';').split('-')[0].strip()
-                use_name2 = stmt.split("=")[1].strip(';').split('-')[1].strip()
-                future = []
-                def_init = re.sub("_.*", "", def_name)
-                use1_init = re.sub("_.*", "", use_name1)
-                use2_init = re.sub("_.*", "", use_name2)
-                if re.search("[a-zA-Z]", use_name1[0]) and def_init != use1_init:
-                    future.append(use_name1)
-                if re.search("[a-zA-Z]", use_name2[0]) and def_init != use2_init:
-                    future.append(use_name2)
-                self.Constraints.append(Constraint(def_name, use_name1, use_name2, "+", None, None, None, None, future))
-                continue
-            # 变量计算 *
-            if re.search("^\w+\s=\s\S+\s\*\s\S+",stmt):
-                def_name = stmt.split("=")[0].strip()
-                use_name1 = stmt.split("=")[1].strip(';').split('*')[0].strip()
-                use_name2 = stmt.split("=")[1].strip(';').split('*')[1].strip()
-                future = []
-                def_init = re.sub("_.*", "", def_name)
-                use1_init = re.sub("_.*", "", use_name1)
-                use2_init = re.sub("_.*", "", use_name2)
-                if re.search("[a-zA-Z]", use_name1[0]) and def_init != use1_init:
-                    future.append(use_name1)
-                if re.search("[a-zA-Z]", use_name2[0]) and def_init != use2_init:
-                    future.append(use_name2)
-                self.Constraints.append(Constraint(def_name, use_name1, use_name2, "+", None, None, None, None, future))
-                continue
-            # 变量计算 /
-            if re.search("^\w+\s=\s\S+\s\/\s\S+",stmt):
-                def_name = stmt.split("=")[0].strip()
-                use_name1 = stmt.split("=")[1].strip(';').split('/')[0].strip()
-                use_name2 = stmt.split("=")[1].strip(';').split('/')[1].strip()
-                future = []
-                def_init = re.sub("_.*", "", def_name)
-                use1_init = re.sub("_.*", "", use_name1)
-                use2_init = re.sub("_.*", "", use_name2)
-                if re.search("[a-zA-Z]", use_name1[0]) and def_init != use1_init:
-                    future.append(use_name1)
-                if re.search("[a-zA-Z]", use_name2[0]) and def_init != use2_init:
-                    future.append(use_name2)
-                self.Constraints.append(Constraint(def_name, use_name1, use_name2, "+", None, None, None, None, future))
-                continue
-            # PHI语句
-            if re.search("^# \S+ = PHI <\S+, \S+>", stmt):
-                def_name = stmt.split("=")[0].strip("#").strip()
-                use_name1 = stmt.split("<")[1].split(",")[0].strip()
-                use_name1 = re.sub("\(.*\)","", use_name1)
-                use_name2 = stmt.split("<")[1].split(",")[1].strip(">").strip()
-                use_name2 = re.sub("\(.*\)","", use_name2)
-                self.Constraints.append(Constraint(def_name, use_name1, use_name2, "PHI", None, None, None, None, []))
-                continue
-            if re.search("^if .* goto .*", stmt):
-                condition = re.search("\(.*\)", stmt).group().strip("(").strip(")").strip()
-                if("not" in condition):
-                    condition = re.sub("not", "", condition).strip()
-                    op1 = condition.split()[0].strip()
-                    opr = self.trans_OP(condition.split()[1].strip())
-                    op2 = condition.split()[2].strip()
-                else:
-                    op1 = condition.split()[0].strip()
-                    opr = condition.split()[1].strip()
-                    op2 = condition.split()[2].strip()
-                for c in self.condition_Constraint(op1, opr, op2):
-                    self.Constraints.append(c)
-        return self.Constraints
-class Variable:
-    def __init__(self, name, var_type):
-        self.name = name
-        self.var_type = var_type
-        self.range_down = ''
-        self.range_down_closure = ''
-        self.range_up = ''
-        self.range_up_closure = ''
-    def set_range_down(self, range_down, range_down_closure):
-        self.range_down = range_down
-        self.range_down_closure = range_down_closure
-    def set_range_up(self, range_up, range_up_closure):
-        self.range_up = range_up
-        self.range_up_closure = range_up_closure
-    
+                    if node.name == myCondition.arg1:
+                        if self.ConstraintGraph.getNodeByName(myCondition.arg2) == None:
+                            arg2 = re.sub("#.*", "", myCondition.arg2)
+                            if myCondition.op == '>=':
+                                if node.Range.lowBound.size == 'int':
+                                    tempRange = Range()
+                                    tempRange.setByValue('-inf', float(arg2) - 1, 'int')
+                                else:
+                                    tempRange = Range()
+                                    tempRange.setByValue('-inf', float(arg2), 'float')
+                            if myCondition.op == '>':
+                                tempRange = Range()
+                                tempRange.setByValue('-inf', float(arg2), resultRange.lowBound.size)
+                            if myCondition.op == '<=':
+                                if resultRange.lowBound.size == 'int':
+                                    tempRange = Range()
+                                    tempRange.setByValue(float(arg2) + 1, 'inf', 'int')
+                                else:
+                                    tempRange = Range()
+                                    tempRange.setByValue(float(arg2), 'inf', 'float')
+                            if myCondition.op == '<':
+                                tempRange = Range()
+                                tempRange.setByValue(float(arg2), 'inf', resultRange.lowBound.size)
+                            if myCondition.op == '!=':
+                                tempRange = Range()
+                                tempRange.setByValue(float(arg2), float(arg2), resultRange.lowBound.size)
+                        else:
+                            if myCondition.op == '>=':
+                                if resultRange.lowBound.size == 'int':
+                                    tempRange = Range()
+                                    tempRange.setByValue('-inf', float(self.ConstraintGraph.getNodeByName(myCondition.arg2).Range.highBound.value) - 1, 'int')
+                                else:
+                                    tempRange = Range()
+                                    tempRange.setByValue('-inf', float(self.ConstraintGraph.getNodeByName(myCondition.arg2).Range.highBound.value), 'float')
+                            if myCondition.op == '>':
+                                tempRange = Range()
+                                tempRange.setByValue('-inf', float(self.ConstraintGraph.getNodeByName(myCondition.arg2).Range.highBound.value),resultRange.lowBound.size)
+                            if myCondition.op == '<=':
+                                if resultRange.lowBound.size == 'int':
+                                    tempRange = Range()
+                                    tempRange.setByValue(float(self.ConstraintGraph.getNodeByName(myCondition.arg2).Range.lowBound.value) + 1, 'inf', 'int')
+                                else:
+                                    tempRange = Range()
+                                    tempRange.setByValue(float(self.ConstraintGraph.getNodeByName(myCondition.arg2).Range.lowBound.value), 'inf', 'float')
+                            if myCondition.op == '<':
+                                tempRange = Range()
+                                tempRange.setByValue(float(self.ConstraintGraph.getNodeByName(myCondition.arg2).Range.lowBound.value), 'inf',resultRange.lowBound.size)
+                            if myCondition.op == '!=':
+                                tempRange = Range()
+                                tempRange.setByValue(float(self.ConstraintGraph.getNodeByName(myCondition.arg2).Range.lowBound.value), float(self.ConstraintGraph.getNodeByName(myCondition.arg2).Range.highBound.value), resultRange.lowBound.size)
+                        #交的范围
+                        if not tempRange == '0' and not resultRange.highBound.value == 'Not Exists': 
+                            resultRange = self.intersect(tempRange, resultRange)
+                        #if myCondition.op == '!=':
 
-class Variable_Class:
-    def __init__(self, initial_name, var_type):
-        self.initial_name = initial_name
-        self.var_type = var_type
-        self.Names = {}
-        self.Constraints = []
-        self.Names[initial_name] = Variable(initial_name, var_type)
-    def addName(self, add_name):
-        self.Names[add_name] = Variable(add_name, self.var_type)
-    def addConstraint(self, add_constraint):
-        self.Constraints.append(add_constraint)
-    def getVariableByName(self, name):
-        for v in self.Names:
-            if v == name:
-                return self.Names[v]
-        return None
+                    if node.name == myCondition.arg2:
+                        if self.ConstraintGraph.getNodeByName(myCondition.arg1) == None:
+                            arg1 = re.sub("#.*", "", myCondition.arg1)
+                            if myCondition.op == '>=':
+                                if resultRange.lowBound.size == 'int':
+                                    tempRange = Range()
+                                    tempRange.setByValue(float(arg1) + 1, 'inf', 'int')
+                                else:
+                                    tempRange = Range()
+                                    tempRange.setByValue(float(arg1), 'inf', 'float')
+                            if myCondition.op == '>':
+                                tempRange = Range()
+                                tempRange.setByValue(float(arg1),'inf', resultRange.lowBound.size)
+                            if myCondition.op == '<=':
+                                if resultRange.lowBound.size == 'int':
+                                    tempRange = Range()
+                                    tempRange.setByValue('-inf', float(arg1) - 1, 'int')
+                                else:
+                                    tempRange = Range()
+                                    tempRange.setByValue('-inf', float(arg1), 'float')
+                            if myCondition.op == '<':
+                                tempRange = Range()
+                                tempRange.setByValue('-inf', float(arg1), resultRange.lowBound.size)
+                            if myCondition.op == '!=':
+                                tempRange = Range()
+                                tempRange.setByValue(float(arg1), float(arg1), resultRange.lowBound.size)
+                        else:
+                            if myCondition.op == '>=':
+                                if node.Range.lowBound.size == 'int':
+                                    tempRange = Range()
+                                    tempRange.setByValue(float(self.ConstraintGraph.getNodeByName(myCondition.arg1).Range.lowBound.value) + 1, 'inf', 'int')
+                                else:
+                                    tempRange = Range()
+                                    tempRange.setByValue(float(self.ConstraintGraph.getNodeByName(myCondition.arg1).Range.lowBound.value), 'inf', 'float')
+                            if myCondition.op == '>':
+                                tempRange = Range()
+                                tempRange.setByValue(float(self.ConstraintGraph.getNodeByName(myCondition.arg1).Range.lowBound.value),'inf', node.Range.lowBound.size)
+                            if myCondition.op == '<=':
+                                if node.Range.lowBound.size == 'int':
+                                    tempRange = Range()
+                                    tempRange.setByValue('-inf', float(self.ConstraintGraph.getNodeByName(myCondition.arg1).Range.highBound.value) - 1, 'int')
+                                else:
+                                    tempRange = Range()
+                                    tempRange.setByValue('-inf', float(self.ConstraintGraph.getNodeByName(myCondition.arg1).Range.highBound.value), 'float')
+                            if myCondition.op == '<':
+                                tempRange = Range()
+                                tempRange.setByValue('-inf', float(self.ConstraintGraph.getNodeByName(myCondition.arg1).Range.highBound.value),node.Range.lowBound.size)
+                            if myCondition.op == '!=':
+                                tempRange = Range()
+                                tempRange.setByValue(float(self.ConstraintGraph.getNodeByName(myCondition.arg1).Range.lowBound.value), float(self.ConstraintGraph.getNodeByName(myCondition.arg1).Range.highBound.value), node.Range.lowBound.size)
+
+                        #交的范围
+                        if not tempRange == '0'  and not resultRange.highBound.value == 'Not Exists': 
+                            resultRange = self.intersect(tempRange, resultRange)
+                        #if myCondition.op == '!=':
+        ininode.setByRange(resultRange)
+
+    #三部曲第一步：Widen过程
+    def Widen(self):
+        #self.initializeLeafs() #对叶节点的范围进行赋值，并对节点类型进行赋值e)
+        change = True
+        ind = 0
+        while(ind < 30):
+            ind = ind + 1
+            change = False
+            #因为设置是从叶节点开始创建节点的，所以遍历顺序和创建顺序保持一致就没用什么大问题
+            for node in self.ConstraintGraph.MyNodes:
+                #检查所有参数的范围都已经求出，如果没有全部求出，就跳过
+                check_all_range_set = True
+                for no in node.args:
+                    if no.checkRange() == False:
+                        check_all_range_set = False
+                        break
+                if check_all_range_set == False:
+                    if node.name == 'PHI':
+                        for no in node.args:
+                            if no.checkRange() == True:
+                                node.copyRange(no)        
+                    continue
+                if node.type == 'op':
+                    ###运算范围
+                    x = self.WidenOP(node)
+                    change = change or x
+                    
+                    #self.ConditionHandle(node)
+                if node.type == 'var':  #如果是var节点，那么一定只有一个右节点
+                    if (len(node.args) > 0):
+                        #var_name = re.sub("_.*", "", node.name).strip()
+                        ###运算范围
+                        x = node.copyRange(node.args[0])
+                        change = change or x
+                #self.ConditionHandle(node)
+
+                    
+
+    def futureResolve(self):
+        change = True
+        for node in self.ConstraintGraph.MyNodes:
+            self.ConditionHandle(node)        
         
-    
+        k = 10
+        while(k > 0):
+            k = k - 1
+            change = False
+            for node in self.ConstraintGraph.MyNodes:
+                self.ConditionHandle(node)
         
-class Constraint:
-    def __init__(self, define, use1, use2, operator, range_down, rdc, range_up, ruc, need):
-        self.define = define
-        self.use1 = use1
-        self.use2 = use2
-        self.operator = operator
-        self.range_down = range_down
-        self.range_down_closure = rdc 
-        self.range_up = range_up
-        self.range_up_closure = ruc
-        self.needFuture = need
+        
+    def Narrow(self):
+        change = True
+        while(change == True):
+            change = False
+            for node in self.ConstraintGraph.MyNodes:
+                check_all_range_set = True
+                for no in node.args:
+                    if no.checkRange() == False:
+                        check_all_range_set = False
+                        break
+                if check_all_range_set == False:
+                    if node.name == 'PHI':
+                        for no in node.args:
+                            if no.checkRange() == True:
+                                node.copyRange(no)                        
+                    continue
+                if node.type == 'op':
+                    ###运算范围
+                    change = change or self.NarrowOP(node)
+                if node.type == 'var':  #如果是var节点，那么一定只有一个右节点
+                    var_name = re.sub("_.*", "", node.name).strip()
+                    ###运算范围
+                    change = change or node.copyRange(node.args[0])
 
-    def print_test(self):
-        print(self.define, end=" ")
-        if(self.use1 == None):
-            print("None", end = " ")
-        else:
-            print(self.use1, end = " ")
-        if(self.use2 == None):
-            print("None", end = " ")
-        else:
-            print(self.use2, end = " ")
-        if(self.operator == None):
-            print("None", end = " ")
-        else:
-            print(self.operator, end = " ")
-        if(self.range_down == None):
-            print("None", end = " ")
-        else:
-            print(self.range_down, end = " ")   
-        if(self.range_down_closure == None):
-            print("None", end = " ")
-        else:
-            print(self.range_down_closure, end = " ")   
-        if(self.range_up == None):
-            print("None", end = " ")
-        else:
-            print(self.range_up, end = " ")   
-        if(self.range_up_closure == None):
-            print("None", end = " ")
-        else:
-            print(self.range_up_closure, end = " ")   
-        print("")
+
+    def checklowSize(self, Rangea, Rangeb):
+
+        if Rangea.lowBound.size == 'int' or Rangeb.lowBound.size == 'int':
+            return 'int'
+        return 'float'
     
+    def checkhighSize(self, Rangea, Rangeb):
+        if Rangea.highBound.size == 'int' or Rangeb.highBound.size == 'int':
+            return 'int'
+        return 'float'
+        
+    def phi(self, Rangea, Rangeb):
+        result = Range()            
+        result.lowBound.value = min(float(Rangea.lowBound.value), float(Rangeb.lowBound.value))
+        result.highBound.value = max(float(Rangea.highBound.value), float(Rangeb.highBound.value))
+        result.lowBound.size = self.checklowSize(Rangea, Rangeb)
+        result.highBound.size = self.checkhighSize(Rangea, Rangeb)
+        return result
+
+
+    def add(self, Rangea, Rangeb):
+        result = Range()
+        result.lowBound.value = float(Rangea.lowBound.value) + float(Rangeb.lowBound.value)
+        result.highBound.value = float(Rangea.highBound.value) + float(Rangeb.highBound.value)
+        result.lowBound.size = self.checklowSize(Rangea, Rangeb)
+        result.highBound.size = self.checkhighSize(Rangea, Rangeb)
+        return result
+    
+    def minus(self, Rangea, Rangeb):
+        result = Range()
+        result.lowBound.value = float(Rangea.lowBound.value) - float(Rangeb.lowBound.value)
+        result.highBound.value = float(Rangea.highBound.value) - float(Rangeb.highBound.value)
+        result.lowBound.size = self.checklowSize(Rangea, Rangeb)
+        result.highBound.size = self.checkhighSize(Rangea, Rangeb)
+        return result
+
+    def multi(self, Rangea, Rangeb):
+        result = Range()
+        L = [float(Rangea.lowBound.value) * float(Rangeb.lowBound.value),
+             float(Rangea.lowBound.value) * float(Rangeb.highBound.value),
+             float(Rangea.highBound.value) * float(Rangeb.lowBound.value),
+             float(Rangea.highBound.value) * float(Rangeb.highBound.value)]
+        result.lowBound.value = min(L)
+        result.highBound.value = max(L)
+        result.lowBound.size = self.checklowSize(Rangea, Rangeb)
+        result.highBound.size = self.checkhighSize(Rangea, Rangeb)
+        return result
+    
+    def div(self, Rangea, Rangeb):
+        result = Range()
+        L = [float(Rangea.lowBound.value) / float(Rangeb.lowBound.value),
+             float(Rangea.lowBound.value) / float(Rangeb.highBound.value),
+             float(Rangea.highBound.value) / float(Rangeb.lowBound.value),
+             float(Rangea.highBound.value) / float(Rangeb.highBound.value)]
+        result.lowBound.value = min(L)
+        result.highBound.value = max(L)
+        result.lowBound.size = self.checklowSize(Rangea, Rangeb)
+        result.highBound.size = self.checkhighSize(Rangea, Rangeb)
+        return result
     
 
-if __name__ == '__main__':
-    
-    
-    ssa2cfg = SSA2CFG()
-    cfg = ssa2cfg.construct("C:\\Users\\spy\\Desktop\\t1.ssa")
-    
-    
+    def intersect(self, Rangea, Rangeb):
+        result = Range()
+        result.lowBound.size = self.checklowSize(Rangea, Rangeb)
+        result.highBound.size = self.checkhighSize(Rangea, Rangeb)
+        if 'None' == Rangea.lowBound.value\
+        and 'None' == Rangeb.lowBound.value:
+            result.lowBound.value = 'None'
+            result.highBound.value = 'None'
+            return result
+        if Rangea.lowBound.value == 'None':
+            result.lowBound.value = float(Rangeb.lowBound.value)
+            result.highBound.value = float(Rangeb.highBound.value)
+            return result
+        if Rangeb.lowBound.value == 'None':
+            result.lowBound.value = float(Rangea.lowBound.value)
+            result.highBound.value = float(Rangea.highBound.value)
+            return result
+        if (float(Rangea.lowBound.value) <= float(Rangeb.lowBound.value)\
+         and float(Rangeb.lowBound.value) <= float(Rangea.highBound.value))\
+         or (float(Rangeb.lowBound.value) <= float(Rangea.lowBound.value)\
+         and float(Rangea.lowBound.value) <= float(Rangeb.highBound.value)):
+            result.lowBound.value = max(float(Rangea.lowBound.value), float(Rangeb.lowBound.value))
+            result.highBound.value = min(float(Rangea.highBound.value), float(Rangeb.highBound.value))
+        else:
+            result.lowBound.value = 'Not Exists'
+            result.highBound.value = 'Not Exists'
+        return result
 
-    ec = ExtractConstraints(cfg)
-    constraints = ec.getConstraints()
-    print(constraints)
-    VariableClasses = ec.VarClasses
-    for v in VariableClasses:
-        v = VariableClasses[v]
-        print(v.initial_name)
-    
-    
-    
-    #for c in ec.Constraints:
-     #   c.print_test()
+    def printRange(self):
+        for node in self.ConstraintGraph.MyNodes:
+            print(node.name,end = ' ')
+            print(node.Range.lowBound.size, end = ' ')
+            print(node.Range.highBound.size, end = ' ' )
+            print("|",end = " ")
+            node.printRange()
+        
+    def finalAnswer(self):
+        for node in self.ConstraintGraph.MyNodes:
+            if node.name == self.ConstraintGraph.returnName:
+                print('Return Value = ', end = ' ')
+                '''
+                print(node.name,end = ' ')
+                print(node.Range.lowBound.size, end = ' ')
+                print(node.Range.highBound.size, end = ' ' )
+                print("|",end = " ")
+                '''
+                node.printRange()
+                return
 
-    #print(len(cfg.Edges))
-    
+
+class RangeAnalysis:
+    def __init__(self, ssaFile):
+        self.ssaName = ssaFile.split('\\')[-1]
+        print(self.ssaName, end = ':\n')
+        self.c = CFGConstructor(ssaFile)
+        self.m = ConstraintConstructor(self.c)
+        self.m.combineGraph()
+        self.Graph = ConstraintGraph(None)
+        for graph in self.m.FinalConstraintGraphs:
+            for node in graph.MyNodes:
+                self.Graph.MyNodes.append(node)
+            for condi in graph.MyConditions:
+                self.Graph.MyConditions.append(condi)
+            if graph.cfg.name == 'foo':
+                self.Graph.returnName = graph.returnName
+        
+        self.r = RangeAna(self.Graph)
+
+        self.r.Widen()
+        
+        #self.r.printRange()
+        
+        self.r.futureResolve()
+        #r.printRange()
+
+        #self.r.Narrow()
+        self.r.printRange()
+        self.r.finalAnswer()
+        
+

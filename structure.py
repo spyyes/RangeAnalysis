@@ -4,7 +4,7 @@ Created on Tue Jul  3 00:19:15 2018
 
 @author: spy
 """
-
+import math
 import re
 #Range由两个Bound组成，Bound是现在得到的界限，运算由节点之间的关系决定
 # inf 最大值 ； -inf 最小值; None 未设置； Null 不存在 
@@ -81,17 +81,23 @@ class MyNode:
     
     def setRange(self, vl, vh, size):
         modify = False
+        if str(vl) == 'nan':
+            vl = '-inf'
+        if str(vh) == 'nan':
+            vh = 'inf'
         if self.Range.lowBound.value != vl\
          or self.Range.highBound.value != vh:
              modify = True         
-        if self.Range.lowBound.size != 'int' and size == 'int':
-            self.Range.lowBound.size = size
-            modify = True
-        if self.Range.highBound.size != 'int' and size == 'int':
-            self.Range.highBound.size = size
-            modify = True
+        if self.type != 'var':
+            if self.Range.lowBound.size != 'int' and size == 'int':
+                self.Range.lowBound.size = size
+                modify = True
+            if self.Range.highBound.size != 'int' and size == 'int':
+                self.Range.highBound.size = size
+                modify = True
         self.Range.lowBound.value = vl
         self.Range.highBound.value = vh
+
         return modify
     
     def setByRange(self, rb):
@@ -115,7 +121,31 @@ class MyNode:
         return self.setRange(vl, vh, size)
 
     def printRange(self):
-        print("Range: " + str(self.Range.lowBound.value) + " " + str(self.Range.highBound.value)  )
+        if str(self.Range.lowBound.value)==('Not Exists')\
+        or str(self.Range.lowBound.value)==('None'):
+             print("Range: ", end = ' ')
+             print('Not Exists Not Exists')
+             return            
+        if str(self.Range.lowBound.size) != 'float':
+            print("Range: ", end = ' ')
+            if self.Range.lowBound.value == '-inf' or self.Range.lowBound.value == float('-inf'):
+                print('-inf', end = ' ')
+            else:
+                print(str(math.floor(float(self.Range.lowBound.value))), end = ' ')
+            if self.Range.highBound.value == 'inf' or self.Range.highBound.value == float('inf'):
+                print('inf', end = ' ')
+            else:
+                print(str(math.ceil(float(self.Range.highBound.value))) )
+        else:
+            print("Range: ", end = ' ')
+            if self.Range.lowBound.value == '-inf':
+                print('-inf', end = ' ')
+            else:
+                print(str((float(self.Range.lowBound.value))), end = ' ')
+            if self.Range.highBound.value == 'inf':
+                print('inf', end = ' ')
+            else:
+                print(str((float(self.Range.highBound.value))) )
 
         
 '''

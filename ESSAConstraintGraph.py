@@ -133,7 +133,7 @@ class ConstraintConstructor:
                     for node in method_graph.MyNodes:
                         node_name = re.sub("#.*", "", node.name)
                         method_arg_name = re.sub("#.*", "", method_arg)
-                        if node_name.startswith(method_arg_name):
+                        if node_name.startswith(method_arg_name) :
                             node.addArgument(rightNode)
                             rightNode.addResult(node)
             if node.type == 'ret':
@@ -395,6 +395,7 @@ class ConstraintGraph:
             for stmt in Block.Stmts:
                 stmt_init = stmt
                 stmt = stmt.strip(";")
+                
                 if "#" in stmt:
                     op = "PHI"
                     left = re.sub("\(.*\)", "", stmt.split("=")[0].strip("#").strip())
@@ -412,8 +413,10 @@ class ConstraintGraph:
                     leftNode.fromBlock = Block.index
                     rightNode.fromBlock = Block.index
                     continue
+                
                 if "if" in stmt:    #在essaconstruct中处理条件节点
                     continue
+                
                 if "=" in stmt\
                 and not "(float)" in stmt\
                 and not "(int)" in stmt\
@@ -442,6 +445,7 @@ class ConstraintGraph:
                         leftNode.addArgument(rightNode)
                         rightNode.addResult(leftNode)
                         leftNode.fromBlock = Block.index
+                
                 if "=" in stmt and "(float)" in stmt:
                     left = re.sub("\(.*\)", "",stmt.split("=")[0].strip())
                     rights = stmt.split("=")[1].strip()
@@ -451,8 +455,10 @@ class ConstraintGraph:
                     leftNode.addArgument(rightNode)
                     rightNode.addResult(leftNode)
                     leftNode.fromBlock = Block.index
+
                     leftNode.Range.lowBound.size = 'float'
                     leftNode.Range.highBound.size = 'float'
+
                 if "=" in stmt and "(int)" in stmt:
                     left = re.sub("\(.*\)", "",stmt.split("=")[0].strip())
                     rights = stmt.split("=")[1].strip()
@@ -464,6 +470,7 @@ class ConstraintGraph:
                     leftNode.fromBlock = Block.index
                     leftNode.Range.lowBound.size = 'int'
                     leftNode.Range.highBound.size = 'int'
+                
                 if "=" in stmt and not "(float)" in stmt\
                 and not "(int)" in stmt\
                 and re.search("=\s*[a-z0-9A-Z_]*\s*\(.*\)\s*;", stmt_init):
@@ -487,6 +494,7 @@ class ConstraintGraph:
                     returnNode.addResult(leftNode)
                     for node in arguNodes:
                         callNode.addArgument(node)
+                
                 if 'return' in stmt:
                     tmpstmt = re.sub('return', '', stmt)
                     tmpstmt = tmpstmt.strip(";").strip()
@@ -548,13 +556,19 @@ class ConstraintGraph:
             var_name = var.split()[1]
             var1, var2 = input("Enter Range For " + var_name + ": ").split()
             self.Arguments.append(var_name)
+            checknode_name = ''
             for node in self.MyNodes:
-                if node.name.startswith(var_name):
+                if node.name.startswith(var_name) and self.checkArguName(node.name):
                     node.Range.lowBound.size = var_size
                     node.Range.highBound.size = var_size
                     node.Range.lowBound.value = var1
                     node.Range.highBound.value = var2
-
+    def checkArguName(self, Name):
+        for Block in self.cfg.Blocks:
+            for stmt in Block.Stmts:
+                if Name.strip() + '(D)' in stmt:
+                    return True
+        return False
     #初始化所有子函数的Arguments
     def initializeChildArguments(self):
         for var in self.cfg.Arguments:
@@ -597,8 +611,8 @@ class ConstraintGraph:
                     else:
                         GotoBlocks.append(goto_id_)
                         continue
-                if (not condition1 in stmt) and (not condition2 in stmt):   
-                    continue
+                #if (not condition1 in stmt) and (not condition2 in stmt):   
+                    #continue
                     
                 nodes = self.getNodesByStmt(stmt)
                 
