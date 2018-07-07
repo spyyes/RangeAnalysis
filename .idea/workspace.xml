@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="fe34b057-d1ef-4b79-b69f-b090f8039a9d" name="Default" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ESSAConstraintGraph.py" beforeDir="false" afterPath="$PROJECT_DIR$/ESSAConstraintGraph.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ranging.py" beforeDir="false" afterPath="$PROJECT_DIR$/ranging.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/structure.py" beforeDir="false" afterPath="$PROJECT_DIR$/structure.py" afterDir="false" />
@@ -15,11 +16,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="ranging.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="ranging.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/ranging.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="285">
-              <caret line="205" column="54" lean-forward="true" selection-start-line="205" selection-start-column="54" selection-end-line="205" selection-end-column="54" />
+            <state relative-caret-position="3040">
+              <caret line="162" column="49" selection-start-line="162" selection-start-column="49" selection-end-line="162" selection-end-column="49" />
             </state>
           </provider>
         </entry>
@@ -27,25 +28,25 @@
       <file leaf-file-name="structure.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/structure.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2166">
-              <caret line="114" column="18" selection-start-line="114" selection-start-column="18" selection-end-line="114" selection-end-column="18" />
+            <state relative-caret-position="1330">
+              <caret line="167" column="22" selection-start-line="167" selection-start-column="22" selection-end-line="167" selection-end-column="22" />
+              <folding>
+                <element signature="e#1340#1453#0" />
+                <element signature="e#1525#3608#0" />
+                <element signature="e#3706#3992#0" />
+                <element signature="e#4044#4553#0" />
+                <element signature="e#4581#4756#0" />
+              </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="ESSAConstraintGraph.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="ESSAConstraintGraph.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/ESSAConstraintGraph.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="104">
-              <caret line="187" column="64" selection-start-line="187" selection-start-column="63" selection-end-line="187" selection-end-column="64" />
-              <folding>
-                <element signature="e#274#4284#0" />
-                <element signature="e#4323#4688#0" />
-                <element signature="e#4996#5789#0" />
-                <element signature="e#5884#5991#0" />
-                <element signature="e#6064#6259#0" />
-                <element signature="e#6308#6401#0" />
-              </folding>
+            <state relative-caret-position="827">
+              <caret line="111" column="50" lean-forward="true" selection-start-line="111" selection-start-column="50" selection-end-line="111" selection-end-column="50" />
+              <caret line="114" lean-forward="true" selection-start-line="114" selection-end-line="114" />
             </state>
           </provider>
         </entry>
@@ -58,6 +59,8 @@
       <find>add</find>
       <find>intersect</find>
       <find>printGraph</find>
+      <find>re.sub</find>
+      <find>CFGConstructor</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -66,8 +69,8 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/structure.py" />
         <option value="$PROJECT_DIR$/ranging.py" />
+        <option value="$PROJECT_DIR$/structure.py" />
         <option value="$PROJECT_DIR$/ESSAConstraintGraph.py" />
       </list>
     </option>
@@ -152,13 +155,14 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-7" y="-7" width="1295" height="695" extended-state="6" />
+    <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.15925059" />
       <window_info anchor="bottom" id="TODO" order="6" />
       <window_info anchor="bottom" id="Event Log" order="7" side_tool="true" />
       <window_info anchor="bottom" id="Version Control" order="7" />
       <window_info anchor="bottom" id="Python Console" order="7" />
-      <window_info anchor="bottom" id="Run" order="2" weight="0.36833048" />
+      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.36833048" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info anchor="bottom" id="Terminal" order="7" />
       <window_info id="Favorites" order="2" side_tool="true" />
@@ -178,6 +182,83 @@
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/ranging.py">
       <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3059">
+          <caret line="161" column="49" selection-start-line="161" selection-start-column="49" selection-end-line="161" selection-end-column="49" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/structure.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1330">
+          <caret line="165" column="22" lean-forward="true" selection-start-line="165" selection-start-column="22" selection-end-line="165" selection-end-column="22" />
+          <folding>
+            <element signature="e#1340#1453#0" />
+            <element signature="e#1525#3608#0" />
+            <element signature="e#3706#3992#0" />
+            <element signature="e#4044#4553#0" />
+            <element signature="e#4581#4756#0" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ESSAConstraintGraph.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="247">
+          <caret line="14" column="10" selection-start-line="14" selection-start-column="10" selection-end-line="14" selection-end-column="10" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ranging.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2774">
+          <caret line="148" column="49" selection-start-line="148" selection-start-column="49" selection-end-line="148" selection-end-column="49" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/structure.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2166">
+          <caret line="114" column="18" selection-start-line="114" selection-start-column="18" selection-end-line="114" selection-end-column="18" />
+          <folding>
+            <element signature="e#1340#1453#0" />
+            <element signature="e#1525#3608#0" />
+            <element signature="e#3706#3992#0" />
+            <element signature="e#4044#4553#0" />
+            <element signature="e#4581#4756#0" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ESSAConstraintGraph.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3211">
+          <caret line="170" column="35" selection-start-line="170" selection-start-column="35" selection-end-line="170" selection-end-column="35" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ranging.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3895">
+          <caret line="205" column="54" lean-forward="true" selection-start-line="205" selection-start-column="54" selection-end-line="205" selection-end-column="54" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/structure.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2166">
+          <caret line="114" column="18" selection-start-line="114" selection-start-column="18" selection-end-line="114" selection-end-column="18" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ESSAConstraintGraph.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3534">
+          <caret line="187" column="64" selection-start-line="187" selection-start-column="63" selection-end-line="187" selection-end-column="64" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ranging.py">
+      <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="4731">
           <caret line="249" column="45" selection-start-line="249" selection-start-column="45" selection-end-line="249" selection-end-column="45" />
         </state>
@@ -194,14 +275,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="4218">
           <caret line="223" column="85" selection-start-line="223" selection-start-column="85" selection-end-line="223" selection-end-column="85" />
-          <folding>
-            <element signature="e#274#4284#0" />
-            <element signature="e#4323#4688#0" />
-            <element signature="e#4996#5789#0" />
-            <element signature="e#5884#5991#0" />
-            <element signature="e#6064#6259#0" />
-            <element signature="e#6308#6401#0" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -212,32 +285,39 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/structure.py">
+    <entry file="file://$APPLICATION_HOME_DIR$/helpers/typeshed/stdlib/3/re.pyi">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2166">
-          <caret line="114" column="18" selection-start-line="114" selection-start-column="18" selection-end-line="114" selection-end-column="18" />
+        <state>
+          <caret selection-end-column="14" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/ESSAConstraintGraph.py">
+    <entry file="file://$PROJECT_DIR$/structure.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="104">
-          <caret line="187" column="64" selection-start-line="187" selection-start-column="63" selection-end-line="187" selection-end-column="64" />
+        <state relative-caret-position="1330">
+          <caret line="167" column="22" selection-start-line="167" selection-start-column="22" selection-end-line="167" selection-end-column="22" />
           <folding>
-            <element signature="e#274#4284#0" />
-            <element signature="e#4323#4688#0" />
-            <element signature="e#4996#5789#0" />
-            <element signature="e#5884#5991#0" />
-            <element signature="e#6064#6259#0" />
-            <element signature="e#6308#6401#0" />
+            <element signature="e#1340#1453#0" />
+            <element signature="e#1525#3608#0" />
+            <element signature="e#3706#3992#0" />
+            <element signature="e#4044#4553#0" />
+            <element signature="e#4581#4756#0" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/ranging.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="285">
-          <caret line="205" column="54" lean-forward="true" selection-start-line="205" selection-start-column="54" selection-end-line="205" selection-end-column="54" />
+        <state relative-caret-position="3040">
+          <caret line="162" column="49" selection-start-line="162" selection-start-column="49" selection-end-line="162" selection-end-column="49" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ESSAConstraintGraph.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="827">
+          <caret line="111" column="50" lean-forward="true" selection-start-line="111" selection-start-column="50" selection-end-line="111" selection-end-column="50" />
+          <caret line="114" lean-forward="true" selection-start-line="114" selection-end-line="114" />
         </state>
       </provider>
     </entry>

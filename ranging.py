@@ -9,15 +9,9 @@ from structure import *
 from ESSAConstraintGraph import *
 
 
-
 class RangeAna:
     def __init__(self, c):
         self.ConstraintGraph = c
-    
-    #初始化所有节点
-    def initAllNodes(self):
-        for myNode in c.MyNodes:
-            myNode.setInitialRange()
     
     #获得所有叶节点
     def getAllLeaves(self):
@@ -27,17 +21,35 @@ class RangeAna:
                 result.append(myNode)
         return result
     
+    #初始化所有叶节点
+    def initializeLeafs(self):
+        LeafNodes = self.getAllLeaves()
+        for node in LeafNodes:
+            node.size = 'float'
+            node.setRange(float(node.name), float(node.name), "float")
+        for statement in self.ConstraintGraph.cfg.Blocks[0].Stmts:
+            statement = statement.strip(';')
+            size = statement.split()[0]
+            name = statement.split()[1]
+            for node in self.ConstraintGraph.MyNodes:
+                if node.name.startswith(name):
+                    node.Range.lowBound.size = size
+                    node.Range.highBound.size = size
+        for var in self.ConstraintGraph.cfg.Arguments:
+            var_size = var.split()[0]
+            var_name = var.split()[1]
+            var1, var2 = input("Enter Range For " + var_name + ": ").split()
+            for node in self.ConstraintGraph.MyNodes:
+                if node.name.startswith(var_name):
+                    node.Range.lowBound.size = var_size
+                    node.Range.highBound.size = var_size
+                    node.Range.lowBound.value = var1
+                    node.Range.highBound.value = var2
             
-            
+   
     
     #Widen Operation
     def WidenOP(self, node):
-        print(node.args[0].name, end = ' ')
-        print(node.args[0].Range.lowBound.size, end = " ")
-        print(node.args[1].name, end = ' ')
-        print(node.args[1].Range.lowBound.size, end = " ")
-        print(node.name)
-        
         if node.name == '+':
             result = self.add(node.args[0].Range, node.args[1].Range)
         if node.name == '-':
@@ -90,36 +102,38 @@ class RangeAna:
             if len(ininode.Conditions) == 0:
                 return False
 
-
             for con in ininode.Conditions:
-                myCondition = self.ConstraintGraph.MyConditions[con[0]]
+                myCondition = self.ConstraintGraph.getConditionByIndex(con[0])
+                #myCondition = self.ConstraintGraph.MyConditions[con[0]]
                 tf = con[1]
+                tempRange = '0'
                 if tf == 0:
                     if node.name == myCondition.arg1:
                         if self.ConstraintGraph.getNodeByName(myCondition.arg2) == None:
+                            arg2 = re.sub("#.*", "", myCondition.arg2)
                             if myCondition.op == '<':
                                 if node.Range.lowBound.size == 'int':
                                     tempRange = Range()
-                                    tempRange.setByValue('-inf', float(myCondition.arg2) - 1, 'int')
+                                    tempRange.setByValue('-inf', float(arg2) - 1, 'int')
                                 else:
                                     tempRange = Range()
-                                    tempRange.setByValue('-inf', float(myCondition.arg2), 'float')
+                                    tempRange.setByValue('-inf', float(arg2), 'float')
                             if myCondition.op == '<=':
                                 tempRange = Range()
-                                tempRange.setByValue('-inf', float(myCondition.arg2), resultRange.lowBound.size)
+                                tempRange.setByValue('-inf', float(arg2), resultRange.lowBound.size)
                             if myCondition.op == '>':
                                 if resultRange.lowBound.size == 'int':
                                     tempRange = Range()
-                                    tempRange.setByValue(float(myCondition.arg2) + 1, 'inf', 'int')
+                                    tempRange.setByValue(float(arg2) + 1, 'inf', 'int')
                                 else:
                                     tempRange = Range()
-                                    tempRange.setByValue(float(myCondition.arg2), 'inf', 'float')
+                                    tempRange.setByValue(float(arg2), 'inf', 'float')
                             if myCondition.op == '>=':
                                 tempRange = Range()
-                                tempRange.setByValue(float(myCondition.arg2), 'inf', resultRange.lowBound.size)
+                                tempRange.setByValue(float(arg2), 'inf', resultRange.lowBound.size)
                             if myCondition.op == '==':
                                 tempRange = Range()
-                                tempRange.setByValue(float(myCondition.arg2), float(myCondition.arg2), resultRange.lowBound.size)
+                                tempRange.setByValue(float(arg2), float(arg2), resultRange.lowBound.size)
                         else:
                             if myCondition.op == '<':
                                 if resultRange.lowBound.size == 'int':
@@ -145,43 +159,36 @@ class RangeAna:
                                 tempRange = Range()
                                 tempRange.setByValue(float(self.ConstraintGraph.getNodeByName(myCondition.arg2).Range.lowBound.value), float(self.ConstraintGraph.getNodeByName(myCondition.arg2).Range.highBound.value), resultRange.lowBound.size)
                         #交的范围
-                        '''
-                        print(myCondition.condition)
-                        print(ininode.name)
-                        print(tempRange.lowBound.value, end = " ")
-                        print(resultRange.lowBound.value, end = " ")
-                        print(tempRange.highBound.value, end = " ")
-                        print(resultRange.highBound.value, end = " ")
-                        '''
-                        if not resultRange.highBound.value == 'Not Exists': 
+                        if not tempRange == '0' and not resultRange.highBound.value == 'Not Exists': 
                             resultRange = self.intersect(tempRange, resultRange)
                         #if myCondition.op == '!=':
 
                     if node.name == myCondition.arg2:
                         if self.ConstraintGraph.getNodeByName(myCondition.arg1) == None:
+                            arg1 = re.sub("#.*", "", myCondition.arg1)
                             if myCondition.op == '<':
                                 if resultRange.lowBound.size == 'int':
                                     tempRange = Range()
-                                    tempRange.setByValue(float(myCondition.arg1) + 1, 'inf', 'int')
+                                    tempRange.setByValue(float(arg1) + 1, 'inf', 'int')
                                 else:
                                     tempRange = Range()
-                                    tempRange.setByValue(float(myCondition.arg1), 'inf', 'float')
+                                    tempRange.setByValue(float(arg1), 'inf', 'float')
                             if myCondition.op == '<=':
                                 tempRange = Range()
-                                tempRange.setByValue(float(myCondition.arg1),'inf', resultRange.lowBound.size)
+                                tempRange.setByValue(float(arg1),'inf', resultRange.lowBound.size)
                             if myCondition.op == '>':
                                 if resultRange.lowBound.size == 'int':
                                     tempRange = Range()
-                                    tempRange.setByValue('-inf', float(myCondition.arg1) - 1, 'int')
+                                    tempRange.setByValue('-inf', float(arg1) - 1, 'int')
                                 else:
                                     tempRange = Range()
-                                    tempRange.setByValue('-inf', float(myCondition.arg1), 'float')
+                                    tempRange.setByValue('-inf', float(arg1), 'float')
                             if myCondition.op == '>=':
                                 tempRange = Range()
-                                tempRange.setByValue('-inf', float(myCondition.arg1), resultRange.lowBound.size)
+                                tempRange.setByValue('-inf', float(arg1), resultRange.lowBound.size)
                             if myCondition.op == '==':
                                 tempRange = Range()
-                                tempRange.setByValue(float(myCondition.arg1), float(myCondition.arg1), resultRange.lowBound.size)
+                                tempRange.setByValue(float(arg1), float(arg1), resultRange.lowBound.size)
                         else:
                             if myCondition.op == '<':
                                 if node.Range.lowBound.size == 'int':
@@ -208,35 +215,36 @@ class RangeAna:
                                 tempRange.setByValue(float(self.ConstraintGraph.getNodeByName(myCondition.arg1).Range.lowBound.value), float(self.ConstraintGraph.getNodeByName(myCondition.arg1).Range.highBound.value), node.Range.lowBound.size)
 
                         #交的范围
-                        if not resultRange.highBound.value == 'Not Exists': 
+                        if not tempRange == '0' and not resultRange.highBound.value == 'Not Exists': 
                             resultRange = self.intersect(tempRange, resultRange)
                         #if myCondition.op == '!=':
                 else:
                     if node.name == myCondition.arg1:
                         if self.ConstraintGraph.getNodeByName(myCondition.arg2) == None:
+                            arg2 = re.sub("#.*", "", myCondition.arg2)
                             if myCondition.op == '>=':
                                 if node.Range.lowBound.size == 'int':
                                     tempRange = Range()
-                                    tempRange.setByValue('-inf', float(myCondition.arg2) - 1, 'int')
+                                    tempRange.setByValue('-inf', float(arg2) - 1, 'int')
                                 else:
                                     tempRange = Range()
-                                    tempRange.setByValue('-inf', float(myCondition.arg2), 'float')
+                                    tempRange.setByValue('-inf', float(arg2), 'float')
                             if myCondition.op == '>':
                                 tempRange = Range()
-                                tempRange.setByValue('-inf', float(myCondition.arg2), resultRange.lowBound.size)
+                                tempRange.setByValue('-inf', float(arg2), resultRange.lowBound.size)
                             if myCondition.op == '<=':
                                 if resultRange.lowBound.size == 'int':
                                     tempRange = Range()
-                                    tempRange.setByValue(float(myCondition.arg2) + 1, 'inf', 'int')
+                                    tempRange.setByValue(float(arg2) + 1, 'inf', 'int')
                                 else:
                                     tempRange = Range()
-                                    tempRange.setByValue(float(myCondition.arg2), 'inf', 'float')
+                                    tempRange.setByValue(float(arg2), 'inf', 'float')
                             if myCondition.op == '<':
                                 tempRange = Range()
-                                tempRange.setByValue(float(myCondition.arg2), 'inf', resultRange.lowBound.size)
+                                tempRange.setByValue(float(arg2), 'inf', resultRange.lowBound.size)
                             if myCondition.op == '!=':
                                 tempRange = Range()
-                                tempRange.setByValue(float(myCondition.arg2), float(myCondition.arg2), resultRange.lowBound.size)
+                                tempRange.setByValue(float(arg2), float(arg2), resultRange.lowBound.size)
                         else:
                             if myCondition.op == '>=':
                                 if resultRange.lowBound.size == 'int':
@@ -262,35 +270,36 @@ class RangeAna:
                                 tempRange = Range()
                                 tempRange.setByValue(float(self.ConstraintGraph.getNodeByName(myCondition.arg2).Range.lowBound.value), float(self.ConstraintGraph.getNodeByName(myCondition.arg2).Range.highBound.value), resultRange.lowBound.size)
                         #交的范围
-                        if not resultRange.highBound.value == 'Not Exists': 
+                        if not tempRange == '0' and not resultRange.highBound.value == 'Not Exists': 
                             resultRange = self.intersect(tempRange, resultRange)
                         #if myCondition.op == '!=':
 
                     if node.name == myCondition.arg2:
                         if self.ConstraintGraph.getNodeByName(myCondition.arg1) == None:
+                            arg1 = re.sub("#.*", "", myCondition.arg1)
                             if myCondition.op == '>=':
                                 if resultRange.lowBound.size == 'int':
                                     tempRange = Range()
-                                    tempRange.setByValue(float(myCondition.arg1) + 1, 'inf', 'int')
+                                    tempRange.setByValue(float(arg1) + 1, 'inf', 'int')
                                 else:
                                     tempRange = Range()
-                                    tempRange.setByValue(float(myCondition.arg1), 'inf', 'float')
+                                    tempRange.setByValue(float(arg1), 'inf', 'float')
                             if myCondition.op == '>':
                                 tempRange = Range()
-                                tempRange.setByValue(float(myCondition.arg1),'inf', resultRange.lowBound.size)
+                                tempRange.setByValue(float(arg1),'inf', resultRange.lowBound.size)
                             if myCondition.op == '<=':
                                 if resultRange.lowBound.size == 'int':
                                     tempRange = Range()
-                                    tempRange.setByValue('-inf', float(myCondition.arg1) - 1, 'int')
+                                    tempRange.setByValue('-inf', float(arg1) - 1, 'int')
                                 else:
                                     tempRange = Range()
-                                    tempRange.setByValue('-inf', float(myCondition.arg1), 'float')
+                                    tempRange.setByValue('-inf', float(arg1), 'float')
                             if myCondition.op == '<':
                                 tempRange = Range()
-                                tempRange.setByValue('-inf', float(myCondition.arg1), resultRange.lowBound.size)
+                                tempRange.setByValue('-inf', float(arg1), resultRange.lowBound.size)
                             if myCondition.op == '!=':
                                 tempRange = Range()
-                                tempRange.setByValue(float(myCondition.arg1), float(myCondition.arg1), resultRange.lowBound.size)
+                                tempRange.setByValue(float(arg1), float(arg1), resultRange.lowBound.size)
                         else:
                             if myCondition.op == '>=':
                                 if node.Range.lowBound.size == 'int':
@@ -317,40 +326,14 @@ class RangeAna:
                                 tempRange.setByValue(float(self.ConstraintGraph.getNodeByName(myCondition.arg1).Range.lowBound.value), float(self.ConstraintGraph.getNodeByName(myCondition.arg1).Range.highBound.value), node.Range.lowBound.size)
 
                         #交的范围
-                        if not resultRange.highBound.value == 'Not Exists': 
+                        if not tempRange == '0'  and not resultRange.highBound.value == 'Not Exists': 
                             resultRange = self.intersect(tempRange, resultRange)
                         #if myCondition.op == '!=':
         ininode.setByRange(resultRange)
-    
-    def initializeLeafs(self):
-        LeafNodes = self.getAllLeaves()
-        for node in LeafNodes:
-            node.size = 'float'
-            node.setRange(float(node.name), float(node.name), "float")
-        for statement in self.ConstraintGraph.cfg.Blocks[0].Stmts:
-            statement = statement.strip(';')
-            size = statement.split()[0]
-            name = statement.split()[1]
-            for node in self.ConstraintGraph.MyNodes:
-                if node.name.startswith(name):
-                    node.Range.lowBound.size = size
-                    node.Range.highBound.size = size
-        for var in self.ConstraintGraph.cfg.Arguments:
-            var_size = var.split()[0]
-            var_name = var.split()[1]
-            var1, var2 = input("Enter Range For " + var_name + ": ").split()
-            for node in self.ConstraintGraph.MyNodes:
-                if node.name.startswith(var_name):
-                    node.Range.lowBound.size = var_size
-                    node.Range.highBound.size = var_size
-                    node.Range.lowBound.value = var1
-                    node.Range.highBound.value = var2
-            
-   
+
     #三部曲第一步：Widen过程
     def Widen(self):
-        self.initAllNodes()
-        self.initializeLeafs() #对叶节点的范围进行赋值，并对节点类型进行赋值e)
+        #self.initializeLeafs() #对叶节点的范围进行赋值，并对节点类型进行赋值e)
         change = True
 
         while(change == True):
@@ -373,13 +356,14 @@ class RangeAna:
                     ###运算范围
                     change = change or self.WidenOP(node)
                     #self.ConditionHandle(node)
-                        
                 if node.type == 'var':  #如果是var节点，那么一定只有一个右节点
-                    print(node.name)
                     if (len(node.args) > 0):
                         #var_name = re.sub("_.*", "", node.name).strip()
                         ###运算范围
                         change = change or node.copyRange(node.args[0])
+
+                        
+                    
 
     def futureResolve(self):
         change = True
@@ -496,12 +480,40 @@ class RangeAna:
             print(node.Range.highBound.size, end = ' ' )
             print("|",end = " ")
             node.printRange()
-            
-    
+        
+    def finalAnswer(self):
+        for node in self.ConstraintGraph.MyNodes:
+            if node.name == self.ConstraintGraph.returnName:
+                print(node.name,end = ' ')
+                print(node.Range.lowBound.size, end = ' ')
+                print(node.Range.highBound.size, end = ' ' )
+                print("|",end = " ")
+                node.printRange()
+                return
 
 if __name__ == '__main__':
+    
+    c = CFGConstructor("C:\\Users\\spy\\Desktop\\RangeAnalysis\\benchmark\\t5.ssa")
+    m = ConstraintConstructor(c)
+    m.combineGraph()
+    g = m.OnlyGraph
+    Graph = ConstraintGraph(None)
+    for graph in m.FinalConstraintGraphs:
+        for node in graph.MyNodes:
+            Graph.MyNodes.append(node)
+        for condi in graph.MyConditions:
+            Graph.MyConditions.append(condi)
+        if graph.cfg.name == 'foo':
+            Graph.returnName = graph.returnName
+    r = RangeAna(Graph)
+    r.Widen()
+    r.printRange()
+    r.futureResolve()
+    r.printRange()
+    r.finalAnswer()
+    '''
     ssa2cfg = SSA2CFG()
-    cfg = ssa2cfg.construct("C:\\Users\\spy\\Desktop\\RangeAnalysis\\benchmark\\t4.ssa")
+    cfg = ssa2cfg.construct("C:\\Users\\spy\\Desktop\\RangeAnalysis\\benchmark\\t10.ssa")
     c = ConstraintGraph(cfg)
     c.construct(cfg)
     c.essaConstruct(cfg)
@@ -516,3 +528,4 @@ if __name__ == '__main__':
     #print("Start Narrow")
     #r.Narrow()
     #r.printRange()
+    '''

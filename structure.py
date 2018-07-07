@@ -5,6 +5,7 @@ Created on Tue Jul  3 00:19:15 2018
 @author: spy
 """
 
+import re
 #Range由两个Bound组成，Bound是现在得到的界限，运算由节点之间的关系决定
 # inf 最大值 ； -inf 最小值; None 未设置； Null 不存在 
 class Range:
@@ -31,23 +32,6 @@ class Range:
         self.lowBound.size = rb.lowBound.size
         self.highBound.size = rb.highBound.size
 
-        
-    #两个范围的比较函数
-    def compare2Bound(self, Bound1, Bound2):
-        if Bound1.value == 'inf' and Bound2.value == 'inf' \
-        or Bound1.value == '-inf' and Bound2.value == '-inf' :
-            return 0
-        if Bound1.value == 'inf' or Bound2.value == '-inf':# 前者比后者大 返回1
-            return 1
-        if Bound1.value == '-inf' or Bound2.value == 'inf':
-            return -1
-        if Bound1.value > Bound2.value:
-            return 1
-        if Bound1.value == Bound2.value:
-            return 0
-        if Bound1.value < Bound2.value:
-            return -1
-    
     #RangeCheck真的需要吗？
     def RangeCheck(self):
         if self.lowBound.value == 'inf':
@@ -59,7 +43,6 @@ class Range:
                 self.highBound.value = 'NULL'
                 self.lowBound.value = 'NULL'
                 
-        
 
 #Widen的时候需要考虑边界运算吗？
 class Bound:
@@ -73,15 +56,17 @@ class Bound:
 class MyNode:
     def __init__(self, t= "", name = "",  args = [], result = [], fromBlock = 0, Statement = ''):
         self.type = t #leave 叶节点存放范围和值 #op运算符 #i变量名
-        self.name = name  #用于变量的存储
+        self.name = name.strip()  #用于变量的存储
         self.args = args
         self.result = result        #被用到哪
         self.Conditions = []        #约束条件
         self.fromBlock = fromBlock  #在CFG的哪个Block中定义的
         self.Statement = Statement  #在SSA中的哪条Statement中
-        self.Range = ''
+        self.Range = Range()
         self.size = ''
         self.input = False
+
+        
     
     def addArgument(self, argument):
         if not argument in self.args:
@@ -93,9 +78,6 @@ class MyNode:
     
     def addCondition(self, c):
         self.Conditions.append(c)
- 
-    def setInitialRange(self):
-        self.Range = Range()
     
     def setRange(self, vl, vh, size):
         modify = False
@@ -132,24 +114,21 @@ class MyNode:
         size = node2.Range.lowBound.size
         return self.setRange(vl, vh, size)
 
-    
     def printRange(self):
         print("Range: " + str(self.Range.lowBound.value) + " " + str(self.Range.highBound.value)  )
 
         
-
 '''
     Class Description : Constraint Graph中的条件，附加在MyNode中
 '''
 class MyCondition:
     def __init__(self, condition, index):
         self.condition = condition
-        self.arg1 = condition.split()[0].strip()
-        self.arg2 = condition.split()[2].strip()
+        self.arg1 = re.sub("\(.*\)", "",condition.split()[0].strip())
+        self.arg2 = re.sub("\(.*\)", "",condition.split()[2].strip())
         self.op = condition.split()[1].strip()
         self.index = index
-        
-        
+              
 #CFG的辅助类          
 class Block:
     def __init__(self, num):
@@ -175,6 +154,7 @@ class Block:
         else:
             return False
 
+
 #CFG的辅助类
 class Edge:
     def __init__(self, block_fm_num, block_to_num, condition):
@@ -185,6 +165,7 @@ class Edge:
 #CFG类      
 class CFG:
     def __init__(self):
+        self.name = ''
         self.Blocks = []
         self.Edges = []
         self.Arguments = []
@@ -225,5 +206,3 @@ class CFG:
     
     def getRootBlock(self):
         return self.getBlockByNum(1)
-
-
