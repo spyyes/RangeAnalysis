@@ -549,7 +549,7 @@ class RangeAnalysis:
         #r.printRange()
 
         #self.r.Narrow()
-        self.r.printRange()
+        #self.r.printRange()
         self.r.finalAnswer()
         
 
